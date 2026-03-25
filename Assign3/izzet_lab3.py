@@ -214,16 +214,16 @@ print("\n" + "=" * 50)
 print("STEP F: SAMPLE GENERATION")
 print("=" * 50)
 
-import tensorflow_probability as tfp
+from scipy.stats import norm as scipy_norm
 
 n = 10
 figure_size = 28
 batch_size = 256
 
 # Create grid of quantile points from standard normal
-norm = tfp.distributions.Normal(0, 1)
-grid_x = norm.quantile(np.linspace(0.05, 0.95, n))
-grid_y = norm.quantile(np.linspace(0.05, 0.95, n))
+# Using scipy.stats.norm.ppf (percent point function = quantile/inverse CDF)
+grid_x = scipy_norm.ppf(np.linspace(0.05, 0.95, n))
+grid_y = scipy_norm.ppf(np.linspace(0.05, 0.95, n))
 
 # Generate images for each grid point
 figure = np.zeros((figure_size * n, figure_size * n))
