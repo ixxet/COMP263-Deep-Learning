@@ -206,3 +206,70 @@ vae_izzet.fit(
     epochs=10,
     batch_size=256
 )
+
+# ============================================================
+# Step f: Generate Samples from the VAE (10x10 Grid)
+# ============================================================
+print("\n" + "=" * 50)
+print("STEP F: SAMPLE GENERATION")
+print("=" * 50)
+
+import tensorflow_probability as tfp
+
+n = 10
+figure_size = 28
+batch_size = 256
+
+# Create grid of quantile points from standard normal
+norm = tfp.distributions.Normal(0, 1)
+grid_x = norm.quantile(np.linspace(0.05, 0.95, n))
+grid_y = norm.quantile(np.linspace(0.05, 0.95, n))
+
+# Generate images for each grid point
+figure = np.zeros((figure_size * n, figure_size * n))
+for i, yi in enumerate(grid_x):
+    for j, xi in enumerate(grid_y):
+        z_sample = np.array([[xi, yi]])
+        z_sample = np.tile(z_sample, batch_size).reshape(batch_size, 2)
+        x_decoded = decoder_izzet.predict(z_sample, batch_size=batch_size)
+        img = x_decoded[0].reshape(figure_size, figure_size)
+        figure[i * figure_size: (i + 1) * figure_size,
+               j * figure_size: (j + 1) * figure_size] = img
+
+# Plot the generated sample grid
+plt.figure(figsize=(20, 20))
+plt.imshow(figure, cmap='gray')
+plt.title('VAE Generated Samples (10x10 Latent Grid)', fontsize=16)
+plt.axis('off')
+plt.show()
+
+# ============================================================
+# Step g: Display (Plot) Latent Space of z_mu
+# ============================================================
+print("\n" + "=" * 50)
+print("STEP G: LATENT SPACE VISUALIZATION")
+print("=" * 50)
+
+# Build model to extract z_mu from the encoder
+z_mu_model = Model(input_img, z_mu_izzet, name='z_mu_model')
+
+# Predict latent space encoding of test dataset
+z_mu_test = z_mu_model.predict(test_izzet['images'])
+
+# Plot 2D scatter of latent space colored by class label
+plt.figure(figsize=(12, 10))
+scatter = plt.scatter(
+    z_mu_test[:, 0], z_mu_test[:, 1],
+    c=test_izzet['labels'],
+    cmap='tab10',
+    alpha=0.5,
+    s=5
+)
+plt.colorbar(scatter, label='Class Label')
+plt.title('VAE Latent Space (z_mu) — Test Set', fontsize=16)
+plt.xlabel('z_mu[0]')
+plt.ylabel('z_mu[1]')
+plt.grid(True, alpha=0.3)
+plt.show()
+
+print("\nAssignment 3 complete.")
