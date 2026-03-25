@@ -223,3 +223,116 @@ plt.ylabel('True Label')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.show()
+
+# ============================================================
+# Step h: Build, Train, Validate, Test, and Analyze RNN Model
+# ============================================================
+# Repeats Steps f and g for an RNN with LSTM architecture.
+# Image height (28 rows) serves as the timestep dimension,
+# with each row of 28 pixels as the feature vector per step.
+
+from tensorflow.keras.layers import LSTM
+
+print("\n" + "=" * 50)
+print("STEP H: RNN (LSTM) MODEL")
+print("=" * 50)
+
+# RNN uses (28, 28) input directly — no channel dimension needed
+x_train_rnn = x_train_izzet
+x_val_rnn = x_val_izzet
+x_test_rnn = test_izzet['images']
+
+# h.1 - Build the RNN model
+rnn_model_izzet = Sequential([
+    LSTM(128, input_shape=(28, 28)),
+    Dense(10, activation='softmax')
+])
+
+# h.2 - Compile the model
+rnn_model_izzet.compile(
+    optimizer='adam',
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# h.3 - Display model summary
+print("\nRNN Model Summary:")
+rnn_model_izzet.summary()
+
+# h.4 - Train and validate the model
+rnn_history_izzet = rnn_model_izzet.fit(
+    x_train_rnn, y_train_izzet,
+    epochs=8,
+    batch_size=256,
+    validation_data=(x_val_rnn, y_val_izzet)
+)
+
+# ---- RNN Evaluation (repeating Step g for the RNN) ----
+print("\n" + "=" * 50)
+print("RNN EVALUATION")
+print("=" * 50)
+
+# Plot Training vs Validation Accuracy
+plt.figure(figsize=(10, 6))
+plt.plot(rnn_history_izzet.history['accuracy'], color='blue', label='Training Accuracy')
+plt.plot(rnn_history_izzet.history['val_accuracy'], color='orange', label='Validation Accuracy')
+plt.title('RNN Model: Training vs Validation Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# Evaluate on test dataset
+rnn_test_loss, rnn_test_accuracy = rnn_model_izzet.evaluate(x_test_rnn, test_izzet['labels'])
+print(f"\nRNN Test Accuracy: {rnn_test_accuracy:.4f}")
+
+# Create predictions on test dataset
+rnn_predictions_izzet = rnn_model_izzet.predict(x_test_rnn)
+
+# Display 4 test images (starting from index 30) with probability distributions
+plt.figure(figsize=(16, 8))
+for i in range(4):
+    idx = start_index + i
+
+    # Image subplot
+    plt.subplot(2, 4, i + 1)
+    plt.imshow(test_izzet['images'][idx], cmap='gray')
+    predicted_label = CLASS_NAMES[np.argmax(rnn_predictions_izzet[idx])]
+    true_label = CLASS_NAMES[np.argmax(test_izzet['labels'][idx])]
+    plt.title(f"True: {true_label}\nPred: {predicted_label}", fontsize=9)
+    plt.xticks([])
+    plt.yticks([])
+
+    # Probability distribution subplot
+    plt.subplot(2, 4, i + 5)
+    plot_probability_distribution(test_izzet['labels'][idx], rnn_predictions_izzet[idx])
+
+plt.suptitle('RNN Predictions: Images and Probability Distributions', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# Confusion Matrix
+rnn_pred_classes = np.argmax(rnn_predictions_izzet, axis=1)
+rnn_true_classes = np.argmax(test_izzet['labels'], axis=1)
+rnn_cm = confusion_matrix(rnn_true_classes, rnn_pred_classes)
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(rnn_cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=CLASS_NAMES, yticklabels=CLASS_NAMES)
+plt.title('RNN Model: Confusion Matrix')
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
+
+# ============================================================
+# Final Comparison
+# ============================================================
+print("\n" + "=" * 50)
+print("MODEL COMPARISON")
+print("=" * 50)
+print(f"CNN Test Accuracy:  {cnn_test_accuracy:.4f}")
+print(f"RNN Test Accuracy:  {rnn_test_accuracy:.4f}")
+print(f"Difference:         {abs(cnn_test_accuracy - rnn_test_accuracy):.4f}")
