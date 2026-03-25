@@ -131,3 +131,78 @@ encoder_izzet = Model(input_img, [z_mu_izzet, z_log_sigma_izzet, z_izzet],
 
 print("\nEncoder Summary:")
 encoder_izzet.summary()
+
+# ============================================================
+# Step c.3: Build Decoder
+# ============================================================
+print("\n" + "=" * 50)
+print("STEP C.3: DECODER")
+print("=" * 50)
+
+# Decoder input: latent dimension
+decoder_input = Input(shape=(latent_dim,))
+
+# Layer 1: Dense to match encoder's pre-flatten shape (14*14*64 = 12544)
+d = Dense(14 * 14 * 64)(decoder_input)
+
+# Layer 2: Reshape back to image-like tensor
+d = Reshape((14, 14, 64))(d)
+
+# Layer 3: Transposed convolution to upsample (14x14 -> 28x28)
+d = Conv2DTranspose(32, (3, 3), activation='relu', padding='same', strides=2)(d)
+
+# Layer 4: Conv2D with sigmoid to produce output image
+d = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(d)
+
+# Build decoder model
+decoder_izzet = Model(decoder_input, d, name='decoder_izzet')
+
+print("\nDecoder Summary:")
+decoder_izzet.summary()
+
+# ============================================================
+# Step c.4: Build VAE
+# ============================================================
+print("\n" + "=" * 50)
+print("STEP C.4: VAE ASSEMBLY")
+print("=" * 50)
+
+# Connect encoder input to decoder output
+y = decoder_izzet(z_izzet)
+vae_izzet = Model(input_img, y, name='vae_izzet')
+
+print("\nVAE Summary:")
+vae_izzet.summary()
+
+# ============================================================
+# Step d: Define KL Divergence Loss
+# ============================================================
+print("\n" + "=" * 50)
+print("STEP D: KL DIVERGENCE LOSS")
+print("=" * 50)
+
+# KL divergence: regularize latent distribution toward standard normal
+kl_loss = -0.5 * tf.reduce_mean(
+    z_mu_izzet - tf.square(z_mu_izzet) - tf.exp(z_log_sigma_izzet) + 1
+)
+
+# Add KL loss to the model
+vae_izzet.add_loss(kl_loss)
+
+# Compile with adam optimizer and MSE reconstruction loss
+vae_izzet.compile(optimizer='adam', loss='mean_squared_error')
+
+print("KL divergence loss added and model compiled.")
+
+# ============================================================
+# Step e: Train the VAE
+# ============================================================
+print("\n" + "=" * 50)
+print("STEP E: TRAINING")
+print("=" * 50)
+
+vae_izzet.fit(
+    train_izzet['images'], train_izzet['images'],
+    epochs=10,
+    batch_size=256
+)
