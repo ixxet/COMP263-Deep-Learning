@@ -185,3 +185,95 @@ plt.ylabel('True Label')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 plt.show()
+
+# ============================================================
+# Step f: Add Random Noise to Unsupervised Dataset
+# ============================================================
+print("\n" + "=" * 50)
+print("STEP F: NOISE INJECTION")
+print("=" * 50)
+
+noise_factor = 0.2
+
+# f.1 - Add Gaussian noise to unsupervised training and validation sets
+tf.random.set_seed(30)
+x_train_noisy_izzet = unsupervised_train_izzet + noise_factor * tf.random.normal(
+    shape=unsupervised_train_izzet.shape
+)
+x_val_noisy_izzet = unsupervised_val_izzet + noise_factor * tf.random.normal(
+    shape=unsupervised_val_izzet.shape
+)
+
+# f.2 - Clip values to [0, 1]
+x_train_noisy_izzet = tf.clip_by_value(x_train_noisy_izzet, 0.0, 1.0)
+x_val_noisy_izzet = tf.clip_by_value(x_val_noisy_izzet, 0.0, 1.0)
+
+print(f"Noisy training set shape: {x_train_noisy_izzet.shape}")
+print(f"Noisy validation set shape: {x_val_noisy_izzet.shape}")
+
+# f.3 - Plot first 10 noisy validation images
+plt.figure(figsize=(20, 2))
+for i in range(10):
+    plt.subplot(1, 10, i + 1)
+    plt.imshow(x_val_noisy_izzet[i].numpy().reshape(28, 28), cmap='gray')
+    plt.xticks([])
+    plt.yticks([])
+plt.suptitle('First 10 Noisy Validation Images', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# ============================================================
+# Step g: Build and Pretrain Autoencoder
+# ============================================================
+print("\n" + "=" * 50)
+print("STEP G: DENOISING AUTOENCODER")
+print("=" * 50)
+
+# g.1 - Build the autoencoder using Functional API
+inputs_izzet = Input(shape=(28, 28, 1))
+
+# Encoder section
+e_izzet = Conv2D(16, (3, 3), activation='relu', padding='same', strides=2)(inputs_izzet)
+e_izzet = Conv2D(8, (3, 3), activation='relu', padding='same', strides=2)(e_izzet)
+
+# Decoder section
+d_izzet = Conv2DTranspose(8, (3, 3), activation='relu', padding='same', strides=2)(e_izzet)
+d_izzet = Conv2DTranspose(16, (3, 3), activation='relu', padding='same', strides=2)(d_izzet)
+d_izzet = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(d_izzet)
+
+# Create model
+autoencoder_izzet = Model(inputs_izzet, d_izzet)
+
+# g.2 - Compile with adam and MSE
+autoencoder_izzet.compile(
+    optimizer='adam',
+    loss='mean_squared_error'
+)
+
+# g.3 - Display summary
+print("\nAutoencoder Summary:")
+autoencoder_izzet.summary()
+
+# g.4 - Train: noisy input -> clean output
+autoencoder_izzet.fit(
+    x_train_noisy_izzet, unsupervised_train_izzet,
+    epochs=10,
+    batch_size=256,
+    shuffle=True,
+    validation_data=(x_val_noisy_izzet, unsupervised_val_izzet)
+)
+
+# g.5 - Predict on validation set
+autoencoder_predictions_izzet = autoencoder_izzet.predict(x_val_noisy_izzet)
+
+# g.6 - Plot first 10 denoised images
+plt.figure(figsize=(20, 2))
+for i in range(10):
+    plt.subplot(1, 10, i + 1)
+    # Use numpy mean to remove the channel axis for plotting
+    plt.imshow(np.mean(autoencoder_predictions_izzet[i], axis=-1), cmap='gray')
+    plt.xticks([])
+    plt.yticks([])
+plt.suptitle('First 10 Denoised Validation Images', fontsize=14)
+plt.tight_layout()
+plt.show()
