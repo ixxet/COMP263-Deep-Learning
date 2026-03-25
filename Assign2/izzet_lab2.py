@@ -277,3 +277,101 @@ for i in range(10):
 plt.suptitle('First 10 Denoised Validation Images', fontsize=14)
 plt.tight_layout()
 plt.show()
+
+# ============================================================
+# Step h: Build and Perform Transfer Learning on CNN
+# ============================================================
+print("\n" + "=" * 50)
+print("STEP H: TRANSFER LEARNING CNN")
+print("=" * 50)
+
+# h.1 - Build CNN using transferred encoder layers from autoencoder
+# The encoder layers are already connected to inputs_izzet
+# e_izzet holds the output of the last encoder layer
+transfer_flatten = Flatten()(e_izzet)
+transfer_dense = Dense(100)(transfer_flatten)
+transfer_output = Dense(10, activation='softmax')(transfer_dense)
+
+cnn_v2_izzet = Model(inputs_izzet, transfer_output)
+
+# h.2 - Compile the model
+cnn_v2_izzet.compile(
+    optimizer='adam',
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# h.3 - Display summary
+print("\nPretrained CNN Summary:")
+cnn_v2_izzet.summary()
+
+# h.4 - Train and validate on supervised dataset
+cnn_v2_history_izzet = cnn_v2_izzet.fit(
+    x_train_izzet, y_train_izzet,
+    epochs=10,
+    batch_size=256,
+    validation_data=(x_val_izzet, y_val_izzet)
+)
+
+# ============================================================
+# Step i: Test and Analyze Pretrained CNN Model
+# ============================================================
+print("\n" + "=" * 50)
+print("STEP I: PRETRAINED CNN EVALUATION")
+print("=" * 50)
+
+# i.1 - Plot Training vs Validation Accuracy
+plt.figure(figsize=(10, 6))
+plt.plot(cnn_v2_history_izzet.history['accuracy'], color='blue', label='Training Accuracy')
+plt.plot(cnn_v2_history_izzet.history['val_accuracy'], color='orange', label='Validation Accuracy')
+plt.title('Pretrained CNN: Training vs Validation Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# i.2 - Evaluate on test dataset
+v2_test_loss, v2_test_accuracy = cnn_v2_izzet.evaluate(x_test_izzet, y_test_izzet)
+print(f"\nPretrained CNN Test Accuracy: {v2_test_accuracy:.4f}")
+
+# i.3 - Create predictions
+cnn_v2_predictions_izzet = cnn_v2_izzet.predict(x_test_izzet)
+
+# i.4 - Confusion Matrix
+v2_pred_classes = np.argmax(cnn_v2_predictions_izzet, axis=1)
+v2_true_classes = np.argmax(y_test_izzet, axis=1)
+v2_cm = confusion_matrix(v2_true_classes, v2_pred_classes)
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(v2_cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=CLASS_NAMES, yticklabels=CLASS_NAMES)
+plt.title('Pretrained CNN: Confusion Matrix')
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
+
+# ============================================================
+# Comparison: Baseline vs Pretrained
+# ============================================================
+print("\n" + "=" * 50)
+print("MODEL COMPARISON")
+print("=" * 50)
+
+# Validation accuracy comparison plot
+plt.figure(figsize=(10, 6))
+plt.plot(cnn_v1_history_izzet.history['val_accuracy'], color='red', label='Baseline CNN')
+plt.plot(cnn_v2_history_izzet.history['val_accuracy'], color='green', label='Pretrained CNN')
+plt.title('Validation Accuracy: Baseline vs Pretrained CNN')
+plt.xlabel('Epoch')
+plt.ylabel('Validation Accuracy')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# Test accuracy comparison
+print(f"Baseline CNN Test Accuracy:   {v1_test_accuracy:.4f}")
+print(f"Pretrained CNN Test Accuracy: {v2_test_accuracy:.4f}")
+print(f"Improvement:                  {v2_test_accuracy - v1_test_accuracy:+.4f}")
