@@ -1,0 +1,27 @@
+# Assignment specification documents
+*.docx
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# Model artifacts
+*.h5
+*.keras
+*.pb
+saved_model/
+
+# Virtual environments
+venv/
+.env/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
