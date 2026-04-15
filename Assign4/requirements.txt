@@ -1,0 +1,18 @@
+# Core RAG stack
+sentence-transformers>=3.0.0
+faiss-cpu>=1.8.0
+numpy>=1.26.0
+tqdm>=4.66.0
+
+# LLM client (vLLM exposes an OpenAI-compatible API)
+openai>=1.40.0
+
+# UI
+streamlit>=1.36.0
+
+# Data fetching
+requests>=2.32.0
+
+# Notebook + report
+jupyter>=1.0.0
+pandas>=2.2.0

@@ -8,7 +8,7 @@
 
 ## Repository Overview
 
-This repository contains all graded lab assignments for COMP 263: Deep Learning. Each assignment builds on foundational concepts introduced in earlier weeks, progressing from spatial feature extraction through sequential modeling to advanced architectures.
+This repository contains all graded lab assignments for COMP 263: Deep Learning. Each assignment builds on foundational concepts introduced in earlier weeks, progressing from spatial feature extraction through sequential modeling, generative architectures, and retrieval-augmented generation.
 
 ## Assignment Map
 
@@ -17,22 +17,24 @@ This repository contains all graded lab assignments for COMP 263: Deep Learning.
 | [1](Assign1/) | Fashion MNIST Classification | CNN + RNN (LSTM) | Complete |
 | [2](Assign2/) | Autoencoders & Transfer Learning | Denoising Autoencoder + Encoder Transfer | Complete |
 | [3](Assign3/) | Variational Autoencoders | VAE with Reparameterization + Latent Space Visualization | Complete |
+| [4](Assign4/) | Retrieval-Augmented Generation | MiniLM Embeddings + FAISS + vLLM + Streamlit | Evaluation Pending |
 
 ## Course Progression
 
 ```
-Assignment 1                    Assignment 2                    Assignment 3
-CNN + RNN (LSTM)                Autoencoder + Transfer          Variational Autoencoder
-───────────────── ────────────► ────────────────── ──────────► ──────────────────────
-Spatial feature                 Unsupervised feature            Probabilistic latent
-extraction via                  learning via denoising          space with KL divergence
-convolution layers              autoencoder on 57K              regularization
-    +                           unlabeled samples                   +
-Sequential modeling                 +                           Reparameterization trick
-via LSTM hidden                 Encoder weight transfer         for differentiable sampling
-states on image rows            to supervised CNN on                +
-                                3K labeled samples              10x10 latent grid generation
-                                                                and 2D manifold visualization
+Assignment 1          Assignment 2          Assignment 3          Assignment 4
+CNN + RNN (LSTM)      Autoencoder +         Variational           RAG over public-domain
+                      Transfer              Autoencoder           literature
+───────────────────► ───────────────────► ───────────────────► ───────────────────
+Spatial feature       Unsupervised          Probabilistic         Retrieval from
+extraction via        feature learning      latent space with     chunked text using
+convolution layers    via denoising         KL divergence         MiniLM embeddings
+    +                 autoencoder               +                     +
+Sequential modeling       +                 Reparameterization    FAISS vector search
+via LSTM hidden       Encoder transfer      trick for sampling        +
+states on image rows  to supervised CNN         +                 Context-only
+                      on 3K labels          Latent grid           generation through
+                                            generation            local vLLM + UI
 ```
 
 **Assignment 1** establishes the baseline for deep learning classification by comparing two fundamentally different architectures on the same dataset. Convolutional Neural Networks exploit spatial locality through learned filter kernels, while Recurrent Neural Networks (LSTM) process image rows as temporal sequences. Training both on Fashion MNIST reveals how architectural inductive biases shape learning dynamics, convergence speed, and generalization.
@@ -40,6 +42,8 @@ states on image rows            to supervised CNN on                +
 **Assignment 2** introduces unsupervised pretraining and transfer learning. A denoising autoencoder learns robust feature representations from 57,000 unlabeled Fashion MNIST images by reconstructing clean outputs from Gaussian-corrupted inputs. The encoder weights then transfer to a supervised CNN classifier operating on just 3,000 labeled samples, demonstrating how pretraining compensates for limited labeled data. The baseline CNN (73.17% test accuracy) and pretrained CNN (71.17% test accuracy) are compared side-by-side to analyze the impact of transfer learning under data-scarce conditions.
 
 **Assignment 3** transitions from deterministic autoencoders to probabilistic generative modeling. A Variational Autoencoder maps Fashion MNIST images to a 2D latent probability distribution parameterized by learned mean and log-variance vectors. The reparameterization trick enables gradient-based optimization through the stochastic sampling node, while KL divergence regularization shapes the latent space into a smooth Gaussian manifold. The trained decoder generates novel images from a 10×10 quantile grid, and a 2D scatter plot of the test set's latent encodings reveals how the VAE organizes garment categories across the learned manifold.
+
+**Assignment 4** moves from model training to retrieval-augmented generation. A custom RAG pipeline downloads six public-domain books from Project Gutenberg, strips boilerplate, chunks the text, embeds passages with Sentence-Transformers, and stores normalized vectors in FAISS for cosine retrieval. A Streamlit app lets users ask questions, filter results by author, inspect retrieved chunks, and generate context-grounded answers through a locally served vLLM endpoint.
 
 ## Technology Stack
 
@@ -51,6 +55,10 @@ states on image rows            to supervised CNN on                +
 | Seaborn | 0.x | Confusion matrix heatmaps |
 | scikit-learn | 1.x | Train/validation splitting, confusion matrix computation |
 | SciPy | 1.x | Standard normal quantile (PPF) for latent grid generation |
+| Sentence-Transformers | 3.x | Text embeddings for Assignment 4 RAG retrieval |
+| FAISS | 1.x | Vector index for Assignment 4 semantic search |
+| vLLM | Latest compatible | Local OpenAI-compatible LLM serving for Assignment 4 |
+| Streamlit | 1.x | Interactive Assignment 4 RAG interface |
 
 ## Quick Start
 
@@ -70,4 +78,14 @@ python Assign2/izzet_lab2.py
 
 # Run Assignment 3
 python Assign3/izzet_lab3.py
+
+# Run Assignment 4
+cd Assign4
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python -m src.fetch_corpus
+python -m src.preprocess
+python -m src.build_index
+# Start vLLM in another terminal before launching the app
+streamlit run app.py
 ```
