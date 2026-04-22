@@ -12,6 +12,7 @@ spec:
     spec:
       template:
         spec:
+          serviceAccountName: fraud-sentinel
           restartPolicy: Never
           containers:
             - name: trainer

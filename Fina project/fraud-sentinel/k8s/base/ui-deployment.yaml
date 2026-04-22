@@ -17,6 +17,7 @@ spec:
         app.kubernetes.io/name: fraud-sentinel
         app.kubernetes.io/component: ui
     spec:
+      serviceAccountName: fraud-sentinel
       containers:
         - name: ui
           image: ghcr.io/ixxet/fraud-sentinel-ui:latest
@@ -40,4 +41,3 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
-

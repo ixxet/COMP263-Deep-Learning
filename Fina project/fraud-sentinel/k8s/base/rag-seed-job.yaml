@@ -13,6 +13,7 @@ spec:
         app.kubernetes.io/name: fraud-sentinel
         app.kubernetes.io/component: rag-seed
     spec:
+      serviceAccountName: fraud-sentinel
       restartPolicy: Never
       containers:
         - name: seed
@@ -31,4 +32,3 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
-

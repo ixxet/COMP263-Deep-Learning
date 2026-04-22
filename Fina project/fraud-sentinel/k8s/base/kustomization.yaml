@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: fraud-sentinel
 resources:
   - namespace.yaml
+  - serviceaccount.yaml
   - configmap.yaml
   - pvc.yaml
   - services.yaml

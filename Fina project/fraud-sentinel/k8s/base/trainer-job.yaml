@@ -6,6 +6,7 @@ metadata:
     app.kubernetes.io/name: fraud-sentinel
     app.kubernetes.io/component: trainer
 spec:
+  suspend: true
   backoffLimit: 1
   template:
     metadata:
@@ -13,6 +14,7 @@ spec:
         app.kubernetes.io/name: fraud-sentinel
         app.kubernetes.io/component: trainer
     spec:
+      serviceAccountName: fraud-sentinel
       restartPolicy: Never
       containers:
         - name: trainer
