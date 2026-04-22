@@ -8,7 +8,7 @@ images:
   - name: ghcr.io/ixxet/fraud-sentinel-trainer
     newTag: "04a84a0"
   - name: ghcr.io/ixxet/fraud-sentinel-ui
-    newTag: "b769b1c"
+    newTag: "b724f6c"
 patches:
   - path: ui-loadbalancer-patch.yaml
   - path: resource-patch.yaml
