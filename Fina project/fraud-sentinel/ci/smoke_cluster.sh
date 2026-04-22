@@ -44,22 +44,23 @@ kubectl -n "$NS" wait --for=condition=complete job/fraud-rag-seed --timeout=120s
 kubectl -n "$NS" wait --for=condition=available deployment/fraud-ui --timeout=180s
 kubectl -n "$NS" wait --for=condition=available deployment/fraud-agent --timeout=180s
 
-trainer_suspended="$(kubectl -n "$NS" get job fraud-trainer -o jsonpath='{.spec.suspend}')"
 trainer_gpu="$(kubectl -n "$NS" get job fraud-trainer -o jsonpath='{.spec.template.spec.containers[0].resources.requests.nvidia\.com/gpu}')"
-if [[ "$trainer_suspended" != "true" ]]; then
-  echo "fraud-trainer should stay suspended until Kaggle credentials are present" >&2
-  exit 1
-fi
 if [[ "$trainer_gpu" != "1" ]]; then
   echo "fraud-trainer should request one NVIDIA GPU, got: $trainer_gpu" >&2
   exit 1
 fi
 
 if [[ "$REQUIRE_MODEL_READY" == "true" ]]; then
+  kubectl -n "$NS" wait --for=condition=complete job/fraud-trainer --timeout=10s
   kubectl -n "$NS" wait --for=condition=available deployment/fraud-api --timeout=300s
   api_target="svc/fraud-api"
   e2e_mode=(--require-ready --require-case)
 else
+  trainer_suspended="$(kubectl -n "$NS" get job fraud-trainer -o jsonpath='{.spec.suspend}')"
+  if [[ "$trainer_suspended" != "true" ]]; then
+    echo "fraud-trainer should stay suspended until Kaggle credentials are present" >&2
+    exit 1
+  fi
   api_target="pod/$(kubectl -n "$NS" get pod \
     -l app.kubernetes.io/name=fraud-sentinel,app.kubernetes.io/component=api \
     --field-selector=status.phase=Running \
