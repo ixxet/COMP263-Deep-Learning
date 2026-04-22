@@ -3,6 +3,48 @@
   import type { PredictionResponse, TransactionInput } from '$lib/types';
 
   const pcaFields = Array.from({ length: 28 }, (_, index) => `V${index + 1}`);
+  const diagramLinks = [
+    {
+      href: '/diagrams/platform-overview.mmd',
+      title: 'Platform Overview',
+      description: 'UI, API, model artifacts, LangGraph, shared services, and access paths.'
+    },
+    {
+      href: '/diagrams/model-training.mmd',
+      title: 'Model Training',
+      description: 'Kaggle data, GPU trainer, gates, metrics, and PVC artifact output.'
+    },
+    {
+      href: '/diagrams/prediction-flow.mmd',
+      title: 'Prediction Flow',
+      description: 'Single-transaction scoring, persistence, case routing, and response.'
+    },
+    {
+      href: '/diagrams/batch-upload-flow.mmd',
+      title: 'Batch Upload',
+      description: 'CSV parsing, optional Class handling, rejected rows, and case creation.'
+    },
+    {
+      href: '/diagrams/agent-case-review.mmd',
+      title: 'Agent Review',
+      description: 'LangGraph gates, RAG retrieval, grounded brief, and human pause.'
+    },
+    {
+      href: '/diagrams/human-review-states.mmd',
+      title: 'Review States',
+      description: 'How pending cases become approved, escalated, dismissed, or audit closed.'
+    },
+    {
+      href: '/diagrams/gitops-deployment.mmd',
+      title: 'GitOps Deployment',
+      description: 'GitHub, GHCR, Flux, Kustomize, Kubernetes Jobs, and services.'
+    },
+    {
+      href: '/diagrams/observability-and-data.mmd',
+      title: 'Observability And Data',
+      description: 'Prometheus, Grafana, Postgres tables, audit trail, and model readiness.'
+    }
+  ];
   const sampleRows: Array<TransactionInput & { Class: number; note: string }> = [
     {
       Time: 0,
@@ -272,5 +314,18 @@
       Use the sample CSV here, or use rows from Kaggle creditcard.csv. For batch scoring, keep Time,
       Amount, V1-V28, and optional Class.
     </p>
+
+    <h2 class="section-title">Platform Diagrams</h2>
+    <p class="muted">
+      These Mermaid files document how the deployed system works from training through review.
+    </p>
+    <div class="diagram-list">
+      {#each diagramLinks as diagram}
+        <a class="diagram-link" href={diagram.href} target="_blank" rel="noreferrer">
+          <strong>{diagram.title}</strong>
+          <span>{diagram.description}</span>
+        </a>
+      {/each}
+    </div>
   </aside>
 </div>

@@ -1,0 +1,17 @@
+flowchart TD
+    pending["Pending fraud_case"] --> load["LoadCase"]
+    load --> risk["RiskGate"]
+    risk -->|low or closed| audit["Audit-only closure"]
+    risk -->|uncertain or high| retrieve["RetrievePolicyContext"]
+    retrieve --> embed["TEI embedding request"]
+    embed --> qdrant["Qdrant policy search"]
+    qdrant --> brief["GenerateCaseBrief with vLLM"]
+    brief --> grounding["GroundingGate"]
+    grounding -->|missing citations or unsupported claim| reject["Reject brief and record agent failure"]
+    grounding -->|grounded| pause["HumanReviewGate interrupt"]
+    pause --> human["Analyst approve, escalate, or dismiss"]
+    human --> finalize["FinalizeCase"]
+    finalize --> db["Persist review, audit event, agent run"]
+
+    classDef gate fill:#fef3c7,stroke:#b45309,color:#18181b;
+    class risk,grounding,pause gate;

@@ -1,0 +1,25 @@
+flowchart TD
+    api["fraud-api"] --> m1["API latency and request count"]
+    api --> m2["Prediction count by risk band"]
+    api --> m3["Model readiness gauge"]
+    agent["fraud-agent"] --> m4["Agent run duration and failures"]
+    tunnel["cloudflared"] --> m5["Tunnel metrics"]
+    m1 --> prom["Prometheus"]
+    m2 --> prom
+    m3 --> prom
+    m4 --> prom
+    m5 --> prom
+    prom --> grafana["Grafana dashboard"]
+
+    api --> tx["transactions"]
+    api --> pred["predictions"]
+    api --> cases["fraud_cases"]
+    agent --> runs["fraud_agent_runs"]
+    api --> reviews["human_reviews"]
+    api --> audit["audit_events"]
+    tx --> pg["Postgres"]
+    pred --> pg
+    cases --> pg
+    runs --> pg
+    reviews --> pg
+    audit --> pg
