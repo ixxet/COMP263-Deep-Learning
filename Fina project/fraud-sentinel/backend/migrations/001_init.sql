@@ -39,7 +39,7 @@ create table if not exists human_reviews (
     created_at timestamptz not null default now()
 );
 
-create table if not exists agent_runs (
+create table if not exists fraud_agent_runs (
     agent_run_id uuid primary key default gen_random_uuid(),
     case_id uuid not null references fraud_cases(case_id),
     status text not null,
@@ -77,4 +77,3 @@ create table if not exists audit_events (
 create index if not exists idx_predictions_created_at on predictions(created_at desc);
 create index if not exists idx_cases_status_created_at on fraud_cases(status, created_at desc);
 create index if not exists idx_audit_entity on audit_events(entity_type, entity_id, created_at);
-

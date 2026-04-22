@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import unittest
+from inspect import getsource
 
 from fraud_sentinel.feature_schema import FEATURE_COLUMNS
-from fraud_sentinel.repository import MemoryRepository
+from fraud_sentinel.repository import MemoryRepository, PostgresRepository
 
 
 class MemoryRepositoryTests(unittest.IsolatedAsyncioTestCase):
@@ -84,6 +85,12 @@ class MemoryRepositoryTests(unittest.IsolatedAsyncioTestCase):
         repo = MemoryRepository()
         with self.assertRaises(KeyError):
             await repo.save_case_brief("missing", "brief", [], "awaiting_human_review")
+
+    def test_postgres_agent_runs_table_is_namespaced(self) -> None:
+        source = getsource(PostgresRepository.save_agent_run)
+
+        self.assertIn("fraud_agent_runs", source)
+        self.assertNotIn("insert into agent_runs", source)
 
 
 if __name__ == "__main__":

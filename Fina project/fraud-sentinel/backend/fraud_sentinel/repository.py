@@ -484,7 +484,7 @@ class PostgresRepository(Repository):
         async with self.pool.acquire() as conn:
             run_id = await conn.fetchval(
                 """
-                insert into agent_runs (case_id, status, state, error)
+                insert into fraud_agent_runs (case_id, status, state, error)
                 values ($1, $2, $3::jsonb, $4)
                 returning agent_run_id
                 """,
