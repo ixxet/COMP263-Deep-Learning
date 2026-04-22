@@ -165,9 +165,10 @@ def transaction(amount: float = 129.5, v14: float = 0.0, v17: float = 0.0) -> di
 
 def multipart_csv(rows: list[dict[str, Any]]) -> dict[str, Any]:
     boundary = f"fraud-sentinel-{uuid.uuid4().hex}"
-    csv_lines = [",".join(FEATURE_COLUMNS)]
+    columns = [*FEATURE_COLUMNS, "Class"]
+    csv_lines = [",".join(columns)]
     for row in rows:
-        csv_lines.append(",".join(str(row[column]) for column in FEATURE_COLUMNS))
+        csv_lines.append(",".join(str(row.get(column, 0)) for column in columns))
     csv_body = "\n".join(csv_lines) + "\n"
     body = (
         f"--{boundary}\r\n"
