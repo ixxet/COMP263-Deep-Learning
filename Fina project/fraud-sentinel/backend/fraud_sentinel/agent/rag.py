@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import hashlib
+import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -27,7 +27,7 @@ def load_policy_documents(policy_dir: Path = POLICY_DIR) -> list[dict[str, Any]]
         title = content.splitlines()[0].lstrip("# ").strip() if content else path.stem
         docs.append(
             {
-                "id": hashlib.sha256(str(path).encode()).hexdigest()[:16],
+                "id": str(uuid.uuid5(uuid.NAMESPACE_URL, str(path))),
                 "source": str(path.name),
                 "title": title,
                 "content": content,

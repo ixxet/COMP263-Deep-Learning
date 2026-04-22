@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import uuid
 from pathlib import Path
 
 from fraud_sentinel.agent.rag import load_policy_documents
@@ -16,6 +17,7 @@ class RagTests(unittest.TestCase):
             docs = load_policy_documents(policy_dir)
 
         self.assertEqual(len(docs), 1)
+        self.assertIsInstance(uuid.UUID(docs[0]["id"]), uuid.UUID)
         self.assertEqual(docs[0]["title"], "Test Policy")
         self.assertEqual(docs[0]["source"], "policy.md")
 
