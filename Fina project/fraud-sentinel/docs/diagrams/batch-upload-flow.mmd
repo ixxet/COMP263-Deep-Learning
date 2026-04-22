@@ -1,0 +1,14 @@
+flowchart TD
+    csv["CSV upload"] --> parse["Read rows with pandas"]
+    parse --> limit["Enforce batch row limit"]
+    limit --> row["For each row"]
+    row --> class["If Class exists, ignore it for inference"]
+    class --> validate["Validate Time, Amount, V1-V28"]
+    validate -->|valid| score["Score with model bundle"]
+    validate -->|invalid| reject["Count rejected row"]
+    score --> persist["Persist prediction and optional case"]
+    persist --> summary["Return accepted_rows, rejected_rows, prediction_ids, case_ids"]
+    reject --> summary
+
+    note["Raw Kaggle creditcard.csv includes Class. Batch scoring accepts it, but single prediction does not."]
+    note -.-> class

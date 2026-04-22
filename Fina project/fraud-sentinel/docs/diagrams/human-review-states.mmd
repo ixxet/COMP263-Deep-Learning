@@ -1,0 +1,14 @@
+stateDiagram-v2
+    [*] --> audit_closed: low risk
+    [*] --> pending_review: uncertain or high risk
+    pending_review --> awaiting_human_review: grounded agent brief saved
+    pending_review --> approved: analyst approves flag
+    pending_review --> escalated: analyst escalates
+    pending_review --> dismissed: analyst dismisses
+    awaiting_human_review --> approved: analyst approves flag
+    awaiting_human_review --> escalated: analyst escalates
+    awaiting_human_review --> dismissed: analyst dismisses
+    approved --> [*]
+    escalated --> [*]
+    dismissed --> [*]
+    audit_closed --> [*]

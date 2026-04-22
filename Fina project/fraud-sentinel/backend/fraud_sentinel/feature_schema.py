@@ -41,8 +41,11 @@ def check_columns(columns: Iterable[str], *, include_label: bool) -> SchemaCheck
     )
 
 
-def coerce_transaction(payload: Mapping[str, Any]) -> dict[str, float]:
-    check = check_columns(payload.keys(), include_label=False)
+def coerce_transaction(payload: Mapping[str, Any], *, allow_label: bool = False) -> dict[str, float]:
+    columns = set(payload.keys())
+    if allow_label:
+        columns.discard(LABEL_COLUMN)
+    check = check_columns(columns, include_label=False)
     if not check.ok:
         raise ValueError(check.message())
 
@@ -61,4 +64,3 @@ def coerce_transaction(payload: Mapping[str, Any]) -> dict[str, float]:
 
 def ordered_feature_vector(transaction: Mapping[str, float]) -> list[float]:
     return [float(transaction[column]) for column in FEATURE_COLUMNS]
-

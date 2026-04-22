@@ -1,0 +1,23 @@
+sequenceDiagram
+    actor Analyst
+    participant UI as fraud-ui
+    participant API as fraud-api
+    participant Model as PyTorch bundle
+    participant DB as Postgres
+    participant Agent as fraud-agent
+
+    Analyst->>UI: Fill Time, Amount, V1-V28
+    UI->>API: POST /v1/predict
+    API->>API: Validate exact inference schema
+    API->>Model: Scale features and score
+    Model-->>API: risk_score and anomaly_score
+    API->>API: Map scores to low, uncertain, or high
+    API->>DB: Insert transaction, prediction, audit event
+    alt uncertain or high
+        API->>DB: Open fraud_case with pending_review
+        DB-->>Agent: Pending case available
+    else low
+        API->>DB: Audit-only record
+    end
+    API-->>UI: prediction_id, scores, band, optional case_id
+    UI-->>Analyst: Show result and next action

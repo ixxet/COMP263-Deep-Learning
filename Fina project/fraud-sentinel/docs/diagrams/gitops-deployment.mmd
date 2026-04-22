@@ -1,0 +1,16 @@
+flowchart LR
+    code["Local repo"] --> push["Push to GitHub main"]
+    push --> build["Build linux/amd64 images"]
+    build --> ghcr["GHCR images"]
+    push --> flux["Flux watches repo"]
+    flux --> kustomize["Kustomize Talos overlay"]
+    kustomize --> ns["fraud-sentinel namespace"]
+    ghcr --> pods["Talos pulls pinned images"]
+    ns --> jobs["migrate, rag-seed, trainer Jobs"]
+    ns --> apps["api, agent, ui, tunnel Deployments"]
+    jobs --> pvc["PVC artifacts and uploads"]
+    apps --> svc["Cilium services and Cloudflare tunnel"]
+    apps --> prom["ServiceMonitor metrics"]
+
+    note["Job manifests use Flux force annotation so image changes can replace immutable Job pod templates."]
+    note -.-> jobs

@@ -59,7 +59,10 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(self.client.post("/v1/predict", json=extra).status_code, 422)
 
     def test_batch_upload_accepts_valid_rows_and_rejects_bad_rows(self) -> None:
-        csv = _csv([_transaction(amount=10_000, v14=10, v17=10), {**_transaction(), "V28": "bad"}])
+        csv = _csv(
+            [_transaction(amount=10_000, v14=10, v17=10), {**_transaction(), "V28": "bad"}],
+            include_label=True,
+        )
         response = self.client.post(
             "/v1/predict/batch",
             files={"file": ("transactions.csv", csv, "text/csv")},
@@ -88,10 +91,14 @@ def _transaction(amount: float = 129.5, v14: float = 0.0, v17: float = 0.0) -> d
     return payload
 
 
-def _csv(rows: list[dict]) -> str:
+def _csv(rows: list[dict], *, include_label: bool = False) -> str:
     columns = ["Time", *[f"V{i}" for i in range(1, 29)], "Amount"]
+    if include_label:
+        columns.append("Class")
     lines = [",".join(columns)]
     for row in rows:
+        if include_label and "Class" not in row:
+            row = {**row, "Class": 0}
         lines.append(",".join(str(row[column]) for column in columns))
     return "\n".join(lines) + "\n"
 

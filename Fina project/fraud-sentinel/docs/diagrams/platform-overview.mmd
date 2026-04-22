@@ -1,0 +1,22 @@
+flowchart LR
+    user["Analyst in SvelteKit UI"] --> ui["fraud-ui"]
+    ui --> api["fraud-api FastAPI"]
+    api --> model["PVC model artifacts"]
+    api --> pg["Shared Postgres"]
+    api --> metrics["Prometheus metrics"]
+    api --> cases["Fraud cases"]
+    cases --> agent["fraud-agent LangGraph"]
+    agent --> qdrant["Shared Qdrant"]
+    agent --> tei["Shared TEI embeddings"]
+    agent --> vllm["Shared vLLM OpenAI API"]
+    agent --> pg
+    agent --> nats["Optional NATS events"]
+    ui --> tunnel["Cloudflare quick tunnel"]
+    ui --> lb["Cilium LoadBalancer IP"]
+
+    classDef app fill:#f8fafc,stroke:#0f766e,color:#18181b;
+    classDef data fill:#ffffff,stroke:#52525b,color:#18181b;
+    classDef edge fill:#fef3c7,stroke:#b45309,color:#18181b;
+    class ui,api,agent,model app;
+    class pg,qdrant,tei,vllm,nats,metrics data;
+    class tunnel,lb,user,cases edge;

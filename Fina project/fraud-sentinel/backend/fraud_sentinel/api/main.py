@@ -150,7 +150,7 @@ async def predict_batch(
     rejected = 0
     for record in df.to_dict(orient="records"):
         try:
-            transaction = coerce_transaction(record)
+            transaction = coerce_transaction(record, allow_label=True)
             model_prediction = model.predict(transaction)
             prediction_data = {
                 "risk_score": model_prediction.risk_score,

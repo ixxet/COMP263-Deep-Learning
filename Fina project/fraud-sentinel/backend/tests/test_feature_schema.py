@@ -35,6 +35,13 @@ class FeatureSchemaTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unexpected columns: Class"):
             coerce_transaction(payload)
 
+    def test_optional_label_allowed_for_batch_uploads(self) -> None:
+        payload = {column: 1 for column in FEATURE_COLUMNS}
+        payload["Class"] = 0
+        result = coerce_transaction(payload, allow_label=True)
+        self.assertEqual(set(result), set(FEATURE_COLUMNS))
+        self.assertNotIn("Class", result)
+
     def test_training_schema_accepts_label(self) -> None:
         check = check_columns([*FEATURE_COLUMNS, "Class"], include_label=True)
         self.assertTrue(check.ok)

@@ -18,3 +18,13 @@ flowchart LR
 
 The hot prediction path is deterministic and model-driven. Agentic review is triggered only for high-risk or uncertain cases, where durable state, RAG retrieval, grounding checks, and human review add operational value.
 
+## Standalone Diagrams
+
+- `docs/diagrams/platform-overview.mmd`
+- `docs/diagrams/model-training.mmd`
+- `docs/diagrams/prediction-flow.mmd`
+- `docs/diagrams/batch-upload-flow.mmd`
+- `docs/diagrams/agent-case-review.mmd`
+- `docs/diagrams/human-review-states.mmd`
+- `docs/diagrams/gitops-deployment.mmd`
+- `docs/diagrams/observability-and-data.mmd`

@@ -1,0 +1,16 @@
+flowchart TD
+    start["Unsuspend fraud-trainer Job"] --> gpu["Schedule on Talos node with nvidia runtime"]
+    gpu --> data["Read /data/creditcard.csv from uploads PVC"]
+    data --> schema["G1 data gate: required columns, labels, split, imbalance"]
+    schema --> split["Stratified train, validation, test split"]
+    split --> scaler["Fit StandardScaler on train only"]
+    scaler --> classifier["Train PyTorch dense classifier"]
+    scaler --> autoencoder["Train autoencoder on normal transactions"]
+    classifier --> threshold["Select validation threshold with recall buffer"]
+    autoencoder --> anomaly["Calibrate reconstruction-error anomaly score"]
+    threshold --> eval["G2 model gate: PR-AUC, recall, precision, F1, confusion matrix"]
+    anomaly --> eval
+    eval -->|pass| artifacts["Write classifier.pt, autoencoder.pt, scaler.joblib, metadata.json"]
+    eval -->|fail| stop["Fail Job and keep previous artifacts"]
+    artifacts --> pvc["fraud-model-artifacts PVC"]
+    pvc --> restart["Restart fraud-api to load model bundle"]
