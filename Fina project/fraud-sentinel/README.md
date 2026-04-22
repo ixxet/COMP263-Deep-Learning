@@ -78,6 +78,10 @@ The trainer `Job` writes model artifacts to the `fraud-model-artifacts` PVC. The
 The trainer image is built for `linux/amd64` from a CUDA-enabled PyTorch runtime and the Kubernetes trainer jobs request `nvidia.com/gpu: "1"` for the 3090 node.
 The Talos overlay also starts a Cloudflare quick tunnel in front of `fraud-ui` for smoke testing and public demo access.
 
+## UI Design Handoff
+
+For product/design handoff, see `docs/ui-design-handoff.md`. It explains the stack, prediction workflow, batch workflow, case-review workflow, ideal demo uses, and design guardrails without locking the UI into the current layout.
+
 ## Test Suites
 
 ```bash
