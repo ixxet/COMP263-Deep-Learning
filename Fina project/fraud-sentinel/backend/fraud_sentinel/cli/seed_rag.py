@@ -19,7 +19,9 @@ async def amain() -> None:
     if not settings.qdrant_url or not settings.tei_base_url:
         raise RuntimeError("FRAUD_QDRANT_URL and FRAUD_TEI_BASE_URL are required")
 
-    docs = load_policy_documents()
+    docs = load_policy_documents(settings.policy_dir)
+    if not docs:
+        raise RuntimeError(f"no policy documents found in {settings.policy_dir}")
     vectors = [await embed_text(settings.tei_base_url, doc["content"]) for doc in docs]
     vector_size = len(vectors[0])
 
@@ -59,4 +61,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

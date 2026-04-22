@@ -4,21 +4,25 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Any
-
-import httpx
-from openai import OpenAI
+from typing import TYPE_CHECKING, Any
 
 from fraud_sentinel.agent.prompts import SYSTEM_PROMPT, build_case_prompt
-from fraud_sentinel.settings import Settings
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-POLICY_DIR = PROJECT_ROOT / "policy"
+if TYPE_CHECKING:
+    from fraud_sentinel.settings import Settings
+
+SOURCE_POLICY_DIR = Path(__file__).resolve().parents[3] / "policy"
+POLICY_DIR = Path("policy")
 
 
 def load_policy_documents(policy_dir: Path = POLICY_DIR) -> list[dict[str, Any]]:
     docs: list[dict[str, Any]] = []
-    for path in sorted(policy_dir.glob("*.md")):
+    candidate_dirs = [policy_dir]
+    if not policy_dir.is_absolute():
+        candidate_dirs.append(Path.cwd() / policy_dir)
+    candidate_dirs.append(SOURCE_POLICY_DIR)
+    resolved_dir = next((path for path in candidate_dirs if list(path.glob("*.md"))), policy_dir)
+    for path in sorted(resolved_dir.glob("*.md")):
         content = path.read_text(encoding="utf-8").strip()
         title = content.splitlines()[0].lstrip("# ").strip() if content else path.stem
         docs.append(
@@ -47,6 +51,8 @@ class PolicyRetriever:
         return self._retrieve_local(query, limit=limit)
 
     async def _retrieve_qdrant(self, query: str, limit: int) -> list[dict[str, Any]]:
+        import httpx
+
         vector = await embed_text(self.settings.tei_base_url, query)
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.post(
@@ -77,6 +83,8 @@ class PolicyRetriever:
 
 
 async def embed_text(tei_base_url: str, text: str) -> list[float]:
+    import httpx
+
     async with httpx.AsyncClient(timeout=20) as client:
         response = await client.post(
             f"{tei_base_url.rstrip('/')}/embed",
@@ -93,6 +101,8 @@ async def embed_text(tei_base_url: str, text: str) -> list[float]:
 
 class BriefGenerator:
     def __init__(self, settings: Settings) -> None:
+        from openai import OpenAI
+
         self.settings = settings
         self.client = OpenAI(
             base_url=settings.vllm_base_url,

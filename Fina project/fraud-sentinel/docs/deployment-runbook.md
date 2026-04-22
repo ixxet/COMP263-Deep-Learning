@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - GHCR images published as `ghcr.io/ixxet/fraud-sentinel-api:latest`, `ghcr.io/ixxet/fraud-sentinel-trainer:latest`, and `ghcr.io/ixxet/fraud-sentinel-ui:latest`.
-- SOPS-managed Secret named `fraud-sentinel-secrets` with `FRAUD_DATABASE_URL`, `KAGGLE_USERNAME`, `KAGGLE_KEY`, and `FRAUD_VLLM_API_KEY`.
+- SOPS-managed Secret named `fraud-sentinel-secrets` with `FRAUD_DATABASE_URL`, `KAGGLE_USERNAME`, `KAGGLE_KEY`, and `FRAUD_VLLM_API_KEY`. URL-encode the database username and password if they contain reserved characters such as `:`, `@`, `/`, or `#`.
 - Existing Postgres, Qdrant, TEI, and vLLM services reachable by the internal URLs in `k8s/base/configmap.yaml`.
 - Prometheus Operator CRDs installed for `ServiceMonitor`.
 - NVIDIA device plugin/runtime available so the trainer pod can request `nvidia.com/gpu: "1"`.
