@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fraud-sentinel-config
+data:
+  FRAUD_ENV: "cluster"
+  FRAUD_MODEL_DIR: "/models"
+  FRAUD_POLICY_DIR: "/app/policy"
+  FRAUD_ALLOW_DEMO_MODEL: "false"
+  FRAUD_BATCH_LIMIT: "500"
+  FRAUD_VLLM_BASE_URL: "http://vllm.open-webui.svc.cluster.local:8000/v1"
+  FRAUD_VLLM_MODEL: "mistralai/Mistral-7B-Instruct-v0.3"
+  FRAUD_TEI_BASE_URL: "http://tei.ai.svc.cluster.local"
+  FRAUD_QDRANT_URL: "http://qdrant.ai.svc.cluster.local:6333"
+  FRAUD_QDRANT_COLLECTION: "fraud_policy"
+  API_BASE_URL: "http://fraud-api:8000"

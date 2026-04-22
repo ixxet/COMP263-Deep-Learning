@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fraud-api
+  labels:
+    app.kubernetes.io/name: fraud-sentinel
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fraud-sentinel
+      app.kubernetes.io/component: api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+

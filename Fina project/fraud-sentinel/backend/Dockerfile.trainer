@@ -1,0 +1,20 @@
+# check=skip=RedundantTargetPlatform
+ARG TARGETPLATFORM=linux/amd64
+FROM --platform=$TARGETPLATFORM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+COPY backend ./backend
+COPY policy ./policy
+
+RUN python -m pip install --upgrade pip \
+    && python -m pip install .
+
+CMD ["python", "-m", "fraud_sentinel.cli.train", "--download-if-missing", "--csv", "/data/creditcard.csv", "--output-dir", "/models"]

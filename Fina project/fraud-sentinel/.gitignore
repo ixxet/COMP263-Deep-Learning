@@ -1,0 +1,33 @@
+# Local Python state
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node/SvelteKit state
+node_modules/
+.svelte-kit/
+build/
+dist/
+
+# Data, model, and runtime artifacts
+data/
+artifacts/
+models/
+uploads/
+*.pt
+*.pth
+*.joblib
+*.onnx
+*.sqlite
+*.db
+
+# Secrets
+.env
+.env.*
+!.env.example
+*secret*.yaml
+!*secret*.example.yaml
+

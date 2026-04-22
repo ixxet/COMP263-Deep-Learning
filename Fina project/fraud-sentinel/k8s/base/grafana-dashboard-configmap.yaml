@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fraud-sentinel-grafana-dashboard
+  labels:
+    grafana_dashboard: "1"
+data:
+  fraud-sentinel.json: |
+    {
+      "title": "Fraud Sentinel",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Model Ready",
+          "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+          "targets": [{"expr": "fraud_model_ready"}]
+        },
+        {
+          "type": "timeseries",
+          "title": "Predictions By Risk Band",
+          "gridPos": {"x": 6, "y": 0, "w": 10, "h": 8},
+          "targets": [{"expr": "sum by (risk_band) (rate(fraud_predictions_total[5m]))"}]
+        },
+        {
+          "type": "timeseries",
+          "title": "API Request Rate",
+          "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+          "targets": [{"expr": "sum(rate(http_requests_total{job=~\".*fraud-api.*\"}[5m]))"}]
+        },
+        {
+          "type": "stat",
+          "title": "Cases Created",
+          "gridPos": {"x": 16, "y": 0, "w": 8, "h": 4},
+          "targets": [{"expr": "sum(fraud_cases_created_total)"}]
+        }
+      ]
+    }
+
