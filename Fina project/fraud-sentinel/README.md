@@ -70,12 +70,24 @@ kustomize build k8s/overlays/talos
 
 Images are expected at:
 
-- `ghcr.io/ixxet/fraud-sentinel-api:latest`
-- `ghcr.io/ixxet/fraud-sentinel-trainer:latest`
-- `ghcr.io/ixxet/fraud-sentinel-ui:latest`
+- `ghcr.io/ixxet/fraud-sentinel-api:a3e80b5`
+- `ghcr.io/ixxet/fraud-sentinel-trainer:280d31a`
+- `ghcr.io/ixxet/fraud-sentinel-ui:280d31a`
 
 The trainer `Job` writes model artifacts to the `fraud-model-artifacts` PVC. The API refuses readiness until a valid artifact bundle is present.
 The trainer image is built for `linux/amd64` from a CUDA-enabled PyTorch runtime and the Kubernetes trainer jobs request `nvidia.com/gpu: "1"` for the 3090 node.
+The Talos overlay also starts a Cloudflare quick tunnel in front of `fraud-ui` for smoke testing and public demo access.
+
+## Test Suites
+
+```bash
+PYTHONPATH=backend python3 -m unittest discover backend/tests
+python3 -m py_compile ci/e2e_api.py
+bash -n ci/smoke_cluster.sh
+./ci/smoke_cluster.sh
+```
+
+Use `REQUIRE_MODEL_READY=true ./ci/smoke_cluster.sh` after the Kaggle trainer has produced model artifacts. Before training, the smoke suite verifies the expected not-ready state instead of failing the deployment.
 
 ## Gates
 

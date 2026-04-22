@@ -7,6 +7,7 @@ resources:
   - configmap.yaml
   - pvc.yaml
   - services.yaml
+  - cloudflared-tunnel.yaml
   - api-deployment.yaml
   - agent-deployment.yaml
   - ui-deployment.yaml
@@ -15,5 +16,6 @@ resources:
   - trainer-job.yaml
   - retrain-cronjob.yaml
   - servicemonitor.yaml
+  - cloudflared-servicemonitor.yaml
   - networkpolicy.yaml
   - grafana-dashboard-configmap.yaml

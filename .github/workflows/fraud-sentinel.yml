@@ -44,6 +44,8 @@ jobs:
           python -m pip install --upgrade pip
           PYTHONPATH=backend python -m unittest discover backend/tests
           python -m compileall -q backend/fraud_sentinel
+          python -m py_compile ci/e2e_api.py
+          bash -n ci/smoke_cluster.sh
       - name: Frontend checks
         working-directory: ${{ env.PROJECT_DIR }}/frontend
         run: |

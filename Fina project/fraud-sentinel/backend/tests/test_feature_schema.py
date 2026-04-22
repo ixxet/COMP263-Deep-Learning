@@ -17,6 +17,18 @@ class FeatureSchemaTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "missing columns: V28"):
             coerce_transaction(payload)
 
+    def test_non_numeric_value_fails(self) -> None:
+        payload = {column: 1 for column in FEATURE_COLUMNS}
+        payload["Amount"] = "not-a-number"
+        with self.assertRaisesRegex(ValueError, "Amount must be numeric"):
+            coerce_transaction(payload)
+
+    def test_non_finite_value_fails(self) -> None:
+        payload = {column: 1 for column in FEATURE_COLUMNS}
+        payload["V1"] = float("inf")
+        with self.assertRaisesRegex(ValueError, "V1 must be finite"):
+            coerce_transaction(payload)
+
     def test_extra_label_rejected_at_inference(self) -> None:
         payload = {column: 1 for column in FEATURE_COLUMNS}
         payload["Class"] = 0
@@ -30,4 +42,3 @@ class FeatureSchemaTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

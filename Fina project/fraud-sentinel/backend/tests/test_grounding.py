@@ -16,6 +16,16 @@ class GroundingTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertTrue(any("prohibited claim" in reason for reason in result.reasons))
 
+    def test_rejects_empty_brief(self) -> None:
+        result = validate_brief("   ", 0)
+        self.assertFalse(result.ok)
+        self.assertIn("brief is empty", result.reasons)
+
+    def test_rejects_out_of_range_citation(self) -> None:
+        result = validate_brief("Analyst should review this case [3].", 2)
+        self.assertFalse(result.ok)
+        self.assertIn("brief cites context outside retrieved policy documents", result.reasons)
+
     def test_accepts_grounded_brief(self) -> None:
         result = validate_brief("The model can prioritize review but does not prove fraud [1].", 1)
         self.assertTrue(result.ok)
@@ -23,4 +33,3 @@ class GroundingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
