@@ -118,7 +118,13 @@ def train(
 
     val_scores = _predict_classifier(classifier, x_val_s)
     precision_curve, recall_curve, thresholds = precision_recall_curve(y_val, val_scores)
-    selected_threshold = _select_threshold(precision_curve, recall_curve, thresholds)
+    validation_target_recall = min(0.98, min_recall + 0.05)
+    selected_threshold = _select_threshold(
+        precision_curve,
+        recall_curve,
+        thresholds,
+        target_recall=validation_target_recall,
+    )
 
     test_scores = _predict_classifier(classifier, x_test_s)
     test_pred = (test_scores >= selected_threshold).astype(int)
@@ -137,6 +143,7 @@ def train(
         "f1": float(f1_score(y_test, test_pred, zero_division=0)),
         "confusion_matrix": confusion_matrix(y_test, test_pred).tolist(),
         "selected_risk_threshold": float(selected_threshold),
+        "validation_target_recall": float(validation_target_recall),
         "class_counts": class_counts,
         "training_device": str(device),
         "cuda_available": bool(torch.cuda.is_available()),
