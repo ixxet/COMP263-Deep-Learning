@@ -17,6 +17,7 @@ spec:
         app.kubernetes.io/component: trainer
     spec:
       serviceAccountName: fraud-sentinel
+      runtimeClassName: nvidia
       restartPolicy: Never
       containers:
         - name: trainer
