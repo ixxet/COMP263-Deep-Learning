@@ -19,7 +19,12 @@ spec:
         - name: migrate
           image: ghcr.io/ixxet/fraud-sentinel-api:latest
           imagePullPolicy: IfNotPresent
-          command: ["python", "-m", "fraud_sentinel.cli.migrate"]
+          command:
+            - python
+            - -m
+            - fraud_sentinel.cli.migrate
+            - --migrations-dir
+            - /app/backend/migrations
           envFrom:
             - configMapRef:
                 name: fraud-sentinel-config
