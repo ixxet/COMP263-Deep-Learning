@@ -2,6 +2,8 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: fraud-rag-seed
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled
   labels:
     app.kubernetes.io/name: fraud-sentinel
     app.kubernetes.io/component: rag-seed
