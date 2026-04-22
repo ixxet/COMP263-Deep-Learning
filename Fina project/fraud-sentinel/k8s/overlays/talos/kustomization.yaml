@@ -2,7 +2,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../base
+images:
+  - name: ghcr.io/ixxet/fraud-sentinel-api
+    newTag: "0827123"
+  - name: ghcr.io/ixxet/fraud-sentinel-trainer
+    newTag: "280d31a"
+  - name: ghcr.io/ixxet/fraud-sentinel-ui
+    newTag: "280d31a"
 patches:
   - path: ui-loadbalancer-patch.yaml
   - path: resource-patch.yaml
-
