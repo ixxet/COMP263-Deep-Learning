@@ -4,7 +4,7 @@ resources:
   - ../../base
 images:
   - name: ghcr.io/ixxet/fraud-sentinel-api
-    newTag: "0827123"
+    newTag: "a3e80b5"
   - name: ghcr.io/ixxet/fraud-sentinel-trainer
     newTag: "280d31a"
   - name: ghcr.io/ixxet/fraud-sentinel-ui
