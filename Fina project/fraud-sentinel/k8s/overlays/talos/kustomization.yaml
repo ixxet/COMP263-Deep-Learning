@@ -4,11 +4,11 @@ resources:
   - ../../base
 images:
   - name: ghcr.io/ixxet/fraud-sentinel-api
-    newTag: "eb5e5aa"
+    newTag: "b769b1c"
   - name: ghcr.io/ixxet/fraud-sentinel-trainer
     newTag: "04a84a0"
   - name: ghcr.io/ixxet/fraud-sentinel-ui
-    newTag: "280d31a"
+    newTag: "b769b1c"
 patches:
   - path: ui-loadbalancer-patch.yaml
   - path: resource-patch.yaml
