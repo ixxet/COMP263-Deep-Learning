@@ -1,331 +1,266 @@
 <script lang="ts">
-  import { predict, uploadBatch } from '$lib/api';
+  import { predict } from '$lib/api';
   import type { PredictionResponse, TransactionInput } from '$lib/types';
+  import RiskPill from '$lib/components/RiskPill.svelte';
+  import ScoreBar from '$lib/components/ScoreBar.svelte';
+  import SectionLabel from '$lib/components/SectionLabel.svelte';
+  import { browser } from '$app/environment';
 
-  const pcaFields = Array.from({ length: 28 }, (_, index) => `V${index + 1}`);
-  const diagramLinks = [
-    {
-      href: '/diagrams/platform-overview.mmd',
-      title: 'Platform Overview',
-      description: 'UI, API, model artifacts, LangGraph, shared services, and access paths.'
-    },
-    {
-      href: '/diagrams/model-training.mmd',
-      title: 'Model Training',
-      description: 'Kaggle data, GPU trainer, gates, metrics, and PVC artifact output.'
-    },
-    {
-      href: '/diagrams/prediction-flow.mmd',
-      title: 'Prediction Flow',
-      description: 'Single-transaction scoring, persistence, case routing, and response.'
-    },
-    {
-      href: '/diagrams/batch-upload-flow.mmd',
-      title: 'Batch Upload',
-      description: 'CSV parsing, optional Class handling, rejected rows, and case creation.'
-    },
-    {
-      href: '/diagrams/agent-case-review.mmd',
-      title: 'Agent Review',
-      description: 'LangGraph gates, RAG retrieval, grounded brief, and human pause.'
-    },
-    {
-      href: '/diagrams/human-review-states.mmd',
-      title: 'Review States',
-      description: 'How pending cases become approved, escalated, dismissed, or audit closed.'
-    },
-    {
-      href: '/diagrams/gitops-deployment.mmd',
-      title: 'GitOps Deployment',
-      description: 'GitHub, GHCR, Flux, Kustomize, Kubernetes Jobs, and services.'
-    },
-    {
-      href: '/diagrams/observability-and-data.mmd',
-      title: 'Observability And Data',
-      description: 'Prometheus, Grafana, Postgres tables, audit trail, and model readiness.'
-    }
-  ];
-  const sampleRows: Array<TransactionInput & { Class: number; note: string }> = [
-    {
-      Time: 0,
-      Amount: 43.75,
-      ...Object.fromEntries(pcaFields.map((field) => [field, 0])),
-      Class: 0,
-      note: 'ordinary-looking baseline row'
-    } as TransactionInput & { Class: number; note: string },
-    {
-      Time: 406,
-      Amount: 529,
-      V1: -2.31,
-      V2: 1.95,
-      V3: -1.61,
-      V4: 3.99,
-      V5: -0.52,
-      V6: -1.43,
-      V7: -2.54,
-      V8: 1.39,
-      V9: -2.77,
-      V10: -2.77,
-      V11: 3.2,
-      V12: -2.9,
-      V13: -0.59,
-      V14: -4.29,
-      V15: 0.39,
-      V16: -1.14,
-      V17: -2.83,
-      V18: -0.02,
-      V19: 0.42,
-      V20: 0.13,
-      V21: 0.52,
-      V22: -0.04,
-      V23: -0.47,
-      V24: 0.32,
-      V25: 0.04,
-      V26: 0.18,
-      V27: 0.26,
-      V28: -0.14,
-      Class: 1,
-      note: 'known fraud-like review row'
-    } as TransactionInput & { Class: number; note: string },
-    {
-      Time: 1200,
-      Amount: 2400,
-      ...Object.fromEntries(pcaFields.map((field) => [field, 0])),
-      V10: -2.2,
-      V14: -2.8,
-      V17: -1.8,
-      Class: 0,
-      note: 'stress-test row'
-    } as TransactionInput & { Class: number; note: string }
-  ];
+  // ── Field definitions ──────────────────────────────────────────────
+  const PCA_FIELDS = Array.from({ length: 28 }, (_, i) => `V${i + 1}`);
 
-  let transaction: TransactionInput = {
-    Time: 0,
-    Amount: 129.5,
-    ...Object.fromEntries(pcaFields.map((field) => [field, 0]))
+  const ORDINARY_SAMPLE: TransactionInput = {
+    Time: 0, Amount: 43.75,
+    ...Object.fromEntries(PCA_FIELDS.map(f => [f, 0]))
   } as TransactionInput;
+
+  const FRAUD_SAMPLE: TransactionInput = {
+    Time: 406, Amount: 529,
+    V1: -2.31, V2: 1.95,  V3: -1.61, V4: 3.99,  V5: -0.52,
+    V6: -1.43, V7: -2.54, V8: 1.39,  V9: -2.77, V10: -2.77,
+    V11: 3.2,  V12: -2.9, V13: -0.59,V14: -4.29, V15: 0.39,
+    V16: -1.14,V17: -2.83,V18: -0.02,V19: 0.42,  V20: 0.13,
+    V21: 0.52, V22: -0.04,V23: -0.47,V24: 0.32,  V25: 0.04,
+    V26: 0.18, V27: 0.26, V28: -0.14,
+  } as TransactionInput;
+
+  // ── State ──────────────────────────────────────────────────────────
+  let transaction: TransactionInput = { ...ORDINARY_SAMPLE };
   let result: PredictionResponse | null = null;
-  let error = '';
   let loading = false;
-  let batchMessage = '';
-  let scoreMessage = '';
+  let error = '';
+  let scoreMsg = '';
+  let showPCA = false;
 
-  function loadSuspiciousSample() {
-    loadSample(1);
+  // ── Helpers ────────────────────────────────────────────────────────
+  function pct(v: number) { return `${(v * 100).toFixed(1)}%`; }
+
+  function riskColor(band: string) {
+    return band === 'high' ? 'var(--high)' : band === 'uncertain' ? 'var(--uncertain)' : 'var(--accent)';
   }
 
-  function loadOrdinarySample() {
-    loadSample(0);
+  function riskBorderColor(band: string) {
+    return band === 'high'
+      ? 'rgba(239,68,68,.44)'
+      : band === 'uncertain'
+        ? 'rgba(245,158,11,.44)'
+        : 'rgba(20,184,166,.44)';
   }
 
-  function loadSample(index: number) {
-    const { Class: _class, note: _note, ...sample } = sampleRows[index];
-    transaction = { ...sample };
-    result = null;
-    scoreMessage = `Loaded ${sampleRows[index].note}. Press Score transaction to run the model.`;
+  function riskExplanation(r: PredictionResponse) {
+    if (r.risk_band === 'high')      return 'High-risk case opened for analyst review.';
+    if (r.risk_band === 'uncertain') return 'Uncertain — case opened, awaiting agent brief and human review.';
+    return 'Low risk — stored for audit only. No case opened.';
   }
 
-  function downloadSampleCsv() {
-    const columns = ['Time', ...pcaFields, 'Amount', 'Class', 'note'];
-    const rows = sampleRows.map((row) =>
-      columns
-        .map((column) => JSON.stringify(String(row[column as keyof typeof row] ?? '')))
-        .join(',')
-    );
-    const csv = `${columns.join(',')}\n${rows.join('\n')}\n`;
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'fraud-sentinel-sample-transactions.csv';
-    link.click();
-    URL.revokeObjectURL(url);
+  function loadSample(type: 'ordinary' | 'fraud') {
+    transaction = type === 'fraud' ? { ...FRAUD_SAMPLE } : { ...ORDINARY_SAMPLE };
+    result = null; error = '';
+    scoreMsg = type === 'fraud'
+      ? 'Loaded known fraud-like sample — significant V14, V4 deviations.'
+      : 'Loaded ordinary baseline sample — all PCA features zeroed.';
   }
 
-  function formatPercent(value: number) {
-    return `${(value * 100).toFixed(1)}%`;
-  }
-
-  function riskExplanation(prediction: PredictionResponse) {
-    if (prediction.risk_band === 'high') {
-      return 'A high-risk case was opened because the supervised fraud score or anomaly signal crossed the review gate.';
-    }
-    if (prediction.risk_band === 'uncertain') {
-      return 'An uncertain case was opened because one signal is elevated enough for analyst review.';
-    }
-    return 'This was stored for audit only. No analyst case was opened.';
-  }
-
-  async function submitPrediction() {
-    loading = true;
-    error = '';
-    result = null;
-    scoreMessage = 'Scoring transaction...';
+  // ── Submit ─────────────────────────────────────────────────────────
+  async function submit() {
+    loading = true; error = ''; result = null; scoreMsg = 'Scoring transaction...';
     try {
       result = await predict(transaction);
-      scoreMessage = riskExplanation(result);
+      if (browser) {
+        localStorage.setItem('fraud-sentinel-model-version', result.model_version);
+        window.dispatchEvent(new CustomEvent('fraud-sentinel-model-version'));
+      }
+      scoreMsg = riskExplanation(result);
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
-      scoreMessage = '';
+      scoreMsg = '';
     } finally {
       loading = false;
     }
   }
 
-  async function submitBatch(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    batchMessage = '';
-    error = '';
-    try {
-      const response = await uploadBatch(file);
-      batchMessage = `${response.accepted_rows} accepted, ${response.rejected_rows} rejected, ${response.case_ids.length} cases opened.`;
-    } catch (err) {
-      error = err instanceof Error ? err.message : String(err);
-    } finally {
-      input.value = '';
-    }
-  }
+  // ── Pipeline steps ─────────────────────────────────────────────────
+  const steps = [
+    { title: 'Score',   body: 'PyTorch classifier + autoencoder produce risk and anomaly signals.' },
+    { title: 'Route',   body: 'Low → audit record only. Uncertain / High → review case opened.' },
+    { title: 'Prepare', body: 'LangGraph agent retrieves policy context, generates grounded brief.' },
+    { title: 'Decide',  body: 'Human analyst records rationale and action. Audit trail persists.' },
+  ];
+
+  const bands = [
+    { band: 'high',      desc: '> 0.75 risk score — review case opened' },
+    { band: 'uncertain', desc: '0.45–0.75 — review case opened' },
+    { band: 'low',       desc: '< 0.45 — audit record only' },
+  ];
 </script>
 
-<div class="grid">
-  <section class="band">
-    <h1 class="section-title">Transaction Scoring</h1>
-    <p class="muted">
-      Score one transaction or upload a CSV. The model expects Kaggle credit-card fraud fields:
-      Time, Amount, and anonymized PCA features V1 through V28. A CSV may also include Class; it is
-      ignored during inference.
-    </p>
-
-    <div class="metric-row" aria-label="Pipeline status">
-      <div class="metric"><strong>30</strong><span>input features</span></div>
-      <div class="metric"><strong>2</strong><span>model signals</span></div>
-      <div class="metric"><strong>3</strong><span>risk bands</span></div>
+<div class="grid-score">
+  <!-- ── Left column ───────────────────────────────────────────────── -->
+  <div class="stack">
+    <div>
+      <h1 class="page-title">Transaction Scoring</h1>
+      <p class="page-sub">
+        Score a single transaction against the PyTorch fraud classifier and autoencoder anomaly
+        model. High or uncertain results open a review case.
+      </p>
     </div>
 
-    <div class="actions">
-      <button class="secondary" type="button" on:click={loadOrdinarySample}>Load ordinary sample</button>
-      <button class="secondary" type="button" on:click={loadSuspiciousSample}>Load review sample</button>
-      <button class="secondary" type="button" on:click={downloadSampleCsv}>Download sample CSV</button>
-      <label>
-        Batch CSV
-        <input type="file" accept=".csv,text/csv" on:change={submitBatch} />
-      </label>
+    <!-- Quick actions -->
+    <div class="row">
+      <button class="btn" on:click={() => loadSample('ordinary')}>Load ordinary sample</button>
+      <button class="btn" on:click={() => loadSample('fraud')}>Load fraud-like sample</button>
     </div>
 
-    {#if scoreMessage}
-      <p class="notice">{scoreMessage}</p>
+    <!-- Score message / notice -->
+    {#if scoreMsg && !result}
+      <p class="notice">{scoreMsg}</p>
     {/if}
 
-    {#if batchMessage}
-      <p class="notice">{batchMessage}</p>
-    {/if}
-
+    <!-- Result panel -->
     {#if result}
-      <section class={`result-panel ${result.risk_band}`} aria-live="polite">
-        <div>
-          <h2 class="section-title">Prediction Result</h2>
-          <p class="muted">
-            The model score ranks how similar this transaction is to fraud patterns in the training
-            data. It is not a payment decision and the LLM does not decide fraud.
-          </p>
+      {@const color = riskColor(result.risk_band)}
+      {@const borderColor = riskBorderColor(result.risk_band)}
+      <div
+        class="card"
+        style="border-left: 4px solid {color}; border-color: {borderColor};"
+      >
+        <div class="row-between" style="margin-bottom: 16px; align-items: center;">
+          <span style="font-weight: 600; font-size: 14px;">Prediction Result</span>
+          <RiskPill band={result.risk_band} />
         </div>
-        <div class="metric-row">
-          <div class="metric">
-            <strong>{formatPercent(result.risk_score)}</strong>
-            <span>supervised fraud score</span>
-            <div class="score-bar"><span style={`width: ${formatPercent(result.risk_score)}`}></span></div>
-          </div>
-          <div class="metric">
-            <strong>{formatPercent(result.anomaly_score)}</strong>
-            <span>autoencoder anomaly score</span>
-            <div class="score-bar"><span style={`width: ${formatPercent(result.anomaly_score)}`}></span></div>
-          </div>
-          <div class="metric">
-            <strong><span class={`pill ${result.risk_band}`}>{result.risk_band}</span></strong>
-            <span>review route</span>
-            <p class="metric-note">{result.case_id ? 'Case opened for review.' : 'Audit record only.'}</p>
-          </div>
-        </div>
-        <p class="muted">Model version: {result.model_version}</p>
-        {#if result.case_id}
-          <p><a class="callout-link" href={`/cases/${result.case_id}`}>Open review case</a></p>
-        {/if}
-      </section>
-    {/if}
 
-    <form on:submit|preventDefault={submitPrediction}>
-      <div class="field-help">
-        <strong>What are these fields?</strong>
-        <span>
-          Time is seconds from the first transaction in the dataset. Amount is the transaction
-          amount. V1-V28 are anonymized PCA features, so they do not map back to merchant, card, or
-          customer names.
-        </span>
+        <div class="grid-2" style="margin-bottom: 16px;">
+          <ScoreBar value={result.risk_score}    band={result.risk_band} label="Supervised fraud score" />
+          <ScoreBar value={result.anomaly_score} band={result.risk_band} label="Autoencoder anomaly score" />
+        </div>
+
+        <p class="muted" style="font-size: 12px; margin-bottom: {result.case_id ? '12px' : 0};">{scoreMsg}</p>
+
+        {#if result.case_id}
+          <a href="/cases/{result.case_id}" class="btn btn-primary" style="width: fit-content;">
+            Open review case →
+          </a>
+        {/if}
+
+        <p class="muted" style="font-size: 11px; margin-top: 12px;">
+          Model version: {result.model_version}
+        </p>
       </div>
-      <div class="form-grid">
-        <label>
-          Time
-          <input type="number" step="any" bind:value={transaction.Time} />
-        </label>
-        <label>
-          Amount
-          <input type="number" step="any" bind:value={transaction.Amount} />
-        </label>
-        {#each pcaFields as field}
-          <label>
-            {field}
-            <input type="number" step="any" bind:value={transaction[field as keyof TransactionInput]} />
-          </label>
-        {/each}
-      </div>
-      <div class="actions">
-        <button type="submit" disabled={loading}>{loading ? 'Scoring...' : 'Score transaction'}</button>
-      </div>
-    </form>
+    {/if}
 
     {#if error}
-      <section class="band result high">
-        <strong>Request failed</strong>
-        <p>{error}</p>
-      </section>
+      <div class="notice-error">{error}</div>
     {/if}
 
-  </section>
+    <!-- Transaction form -->
+    <form class="card stack" on:submit|preventDefault={submit}>
+      <!-- Time + Amount -->
+      <div class="grid-2">
+        <label class="field-label">
+          <span>Time</span>
+          <input type="number" step="any" bind:value={transaction.Time} />
+        </label>
+        <label class="field-label">
+          <span>Amount</span>
+          <input type="number" step="any" bind:value={transaction.Amount} />
+        </label>
+      </div>
 
-  <aside class="band">
-    <img
-      class="ops-image"
-      src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=900&q=80"
-      alt="Payment terminal with credit card"
-    />
-    <h2 class="section-title">Review Gates</h2>
-    <p class="muted">
-      Low-risk transactions are stored for audit. Uncertain and high-risk predictions open cases for
-      LangGraph review, policy retrieval, grounded briefing, and analyst action.
-    </p>
-    <div class="step-list">
-      <p><strong>1. Score</strong><span>The PyTorch model produces fraud and anomaly signals.</span></p>
-      <p><strong>2. Route</strong><span>Low risk closes to audit; uncertain and high open cases.</span></p>
-      <p><strong>3. Review</strong><span>LangGraph drafts context, then a human records the decision.</span></p>
-    </div>
-    <h2 class="section-title">CSV Source</h2>
-    <p class="muted">
-      Use the sample CSV here, or use rows from Kaggle creditcard.csv. For batch scoring, keep Time,
-      Amount, V1-V28, and optional Class.
-    </p>
+      <!-- V1–V28 toggle -->
+      <button
+        type="button"
+        class="btn btn-ghost"
+        style="width: 100%; justify-content: space-between;"
+        on:click={() => (showPCA = !showPCA)}
+        aria-expanded={showPCA}
+      >
+        <span>
+          Model features V1–V28
+          <span class="muted" style="font-size: 11px;">(anonymized PCA)</span>
+        </span>
+        <span
+          style="font-size: 14px; display: inline-block; transform: rotate({showPCA ? 180 : 0}deg); transition: transform .2s;"
+          aria-hidden="true"
+        >▾</span>
+      </button>
 
-    <h2 class="section-title">Platform Diagrams</h2>
-    <p class="muted">
-      These Mermaid files document how the deployed system works from training through review.
-    </p>
-    <div class="diagram-list">
-      {#each diagramLinks as diagram}
-        <a class="diagram-link" href={diagram.href} target="_blank" rel="noreferrer">
-          <strong>{diagram.title}</strong>
-          <span>{diagram.description}</span>
-        </a>
+      {#if showPCA}
+        <div class="grid-pca">
+          {#each PCA_FIELDS as field}
+            <label class="field-label" style="gap: 4px;">
+              <span style="font-size: 10px; font-family: var(--font-mono);">{field}</span>
+              <input
+                type="number"
+                step="any"
+                style="padding: 6px 8px; font-size: 12px;"
+                bind:value={transaction[field as keyof TransactionInput]}
+              />
+            </label>
+          {/each}
+        </div>
+      {/if}
+
+      <!-- Submit -->
+      <div>
+        <button type="submit" class="btn btn-primary" disabled={loading}>
+          {#if loading}<span class="spinner"></span>{/if}
+          {loading ? 'Scoring...' : 'Score transaction'}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Right column ──────────────────────────────────────────────── -->
+  <div class="stack">
+    <!-- Pipeline -->
+    <div class="card stack">
+      <SectionLabel>Review pipeline</SectionLabel>
+      {#each steps as step, i}
+        <div style="display: flex; gap: 12px;">
+          <div
+            style="
+              width: 22px; height: 22px; border-radius: 50%;
+              background: var(--surface); border: 1px solid var(--accent);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 10px; font-weight: 700; color: var(--accent); flex-shrink: 0; margin-top: 1px;
+            "
+          >{i + 1}</div>
+          <div>
+            <div style="font-size: 12px; font-weight: 600; margin-bottom: 2px;">{step.title}</div>
+            <div style="font-size: 11px; color: var(--muted); line-height: 1.5;">{step.body}</div>
+          </div>
+        </div>
       {/each}
     </div>
-  </aside>
+
+    <!-- Risk bands -->
+    <div class="card stack">
+      <SectionLabel>Risk bands</SectionLabel>
+      {#each bands as b}
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <RiskPill band={b.band} />
+          <span style="font-size: 11px; color: var(--muted); line-height: 1.4; padding-top: 2px;">{b.desc}</span>
+        </div>
+      {/each}
+    </div>
+
+    <!-- Field reference -->
+    <div class="card">
+      <SectionLabel>Field reference</SectionLabel>
+      <div style="font-size: 11px; color: var(--muted); line-height: 1.8;">
+        <div><span class="mono" style="color: var(--text);">Time</span> — seconds since dataset start</div>
+        <div><span class="mono" style="color: var(--text);">Amount</span> — transaction amount</div>
+        <div><span class="mono" style="color: var(--text);">V1–V28</span> — anonymized PCA features, not business-readable</div>
+      </div>
+      <div
+        style="
+          margin-top: 10px; padding: 8px 10px; background: var(--surface);
+          border-radius: var(--radius-sm); border-left: 3px solid var(--uncertain);
+          font-size: 11px; color: var(--muted); line-height: 1.5;
+        "
+      >
+        High scores mean <em>similar to fraud patterns in training data</em> — not confirmed fraud.
+      </div>
+    </div>
+  </div>
 </div>
