@@ -102,6 +102,11 @@
   // ── Derived ────────────────────────────────────────────────────────
   $: canReview = !!item && ['pending_review', 'awaiting_human_review'].includes(item.status);
   $: canSubmit  = !!activeAction && rationale.trim().length > 0;
+  $: agentBriefStatus = item?.brief
+    ? 'brief_ready'
+    : canReview
+      ? 'agent_pending'
+      : 'reviewed_no_brief';
 
   $: primaryTxFields = item
     ? Object.entries(item.transaction).filter(([k]) => ['Time', 'Amount'].includes(k))
@@ -160,7 +165,10 @@
 
       <!-- Agent brief -->
       <div class="card" style="margin-bottom: 16px;">
-        <SectionLabel>Agent brief</SectionLabel>
+        <div class="row-between" style="margin-bottom: 12px; align-items: center;">
+          <SectionLabel>Agent brief</SectionLabel>
+          <RiskPill status={agentBriefStatus} />
+        </div>
         {#if item.brief}
           <p style="font-size: 13px; line-height: 1.7; color: var(--text);">{item.brief}</p>
           {#if item.policy_context.length > 0}
@@ -184,8 +192,8 @@
             border-radius: var(--radius-md); border-left: 3px solid var(--border);
             font-size: 12px; color: var(--muted);
           ">
-            Agent worker has not produced a brief yet. Case can still be reviewed from model scores
-            and transaction payload.
+            Agent worker has not produced a brief yet. Case can still be reviewed from model scores,
+            transaction payload, and analyst rationale.
           </div>
         {/if}
       </div>

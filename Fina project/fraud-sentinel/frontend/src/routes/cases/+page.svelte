@@ -30,6 +30,8 @@
   $: pending   = cases.filter(c => ['pending_review','awaiting_human_review'].includes(c.status));
   $: reviewed  = cases.filter(c => ['approved','escalated','dismissed'].includes(c.status));
   $: escalated = cases.filter(c => c.status === 'escalated');
+  $: briefReady = cases.filter(c => !!c.brief).length;
+  $: briefPending = cases.length - briefReady;
 
   $: riskMix = {
     high:      cases.filter(c => c.risk_band === 'high').length,
@@ -58,6 +60,11 @@
     return new Date(s).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
   function shortId(id: string) { return id.slice(0, 8); }
+  function agentStatus(c: CaseSummary) {
+    if (c.brief) return 'brief_ready';
+    if (['approved','escalated','dismissed'].includes(c.status)) return 'reviewed_no_brief';
+    return 'agent_pending';
+  }
 
   const FILTERS = [
     ['all',                   'All cases'],
@@ -82,9 +89,13 @@
       <h1 class="page-title">Case Queue</h1>
       <p class="muted" style="font-size: 13px;">
         Cases exist only for uncertain or high-risk scores. This is the human review surface.
+        Low-risk audit records live in <a href="/history" class="link-accent">Prediction History</a>.
       </p>
     </div>
-    <button class="btn" on:click={load}>↻ Refresh</button>
+    <div class="row">
+      <a href="/history" class="btn btn-ghost">Prediction history</a>
+      <button class="btn" on:click={load}>Refresh</button>
+    </div>
   </div>
 
   {#if loading}
@@ -130,21 +141,40 @@
         {/each}
       </div>
 
-      <!-- Top risk scores -->
-      <div class="card">
-        <SectionLabel>Top risk scores</SectionLabel>
-        {#each topCases as c}
-          <a
-            href="/cases/{c.case_id}"
-            style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(45,49,71,.5); text-decoration: none;"
-          >
-            <span class="mono muted" style="font-size: 11px; flex-shrink: 0;">{shortId(c.case_id)}</span>
-            <div style="flex: 1;">
-              <ScoreBar value={c.risk_score} band={c.risk_band} />
+      <div class="stack">
+        <!-- Top risk scores -->
+        <div class="card">
+          <SectionLabel>Top risk scores</SectionLabel>
+          {#each topCases as c}
+            <a
+              href="/cases/{c.case_id}"
+              style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(45,49,71,.5); text-decoration: none;"
+            >
+              <span class="mono muted" style="font-size: 11px; flex-shrink: 0;">{shortId(c.case_id)}</span>
+              <div style="flex: 1;">
+                <ScoreBar value={c.risk_score} band={c.risk_band} />
+              </div>
+              <RiskPill status={c.status} />
+            </a>
+          {/each}
+        </div>
+
+        <div class="card">
+          <SectionLabel>Agent brief status</SectionLabel>
+          <div class="stack" style="gap: 8px; font-size: 12px;">
+            <div style="display: flex; justify-content: space-between; gap: 12px;">
+              <span class="muted">Brief ready</span>
+              <span class="mono" style="color: var(--accent);">{briefReady}</span>
             </div>
-            <RiskPill status={c.status} />
-          </a>
-        {/each}
+            <div style="display: flex; justify-content: space-between; gap: 12px;">
+              <span class="muted">Pending or unavailable</span>
+              <span class="mono" style="color: var(--uncertain);">{briefPending}</span>
+            </div>
+            <p class="muted" style="font-size: 11px; line-height: 1.5;">
+              The agent brief supports review only. The PyTorch model produced the risk score.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -179,6 +209,7 @@
             <tr>
               <th>Case ID</th>
               <th>Status</th>
+              <th>Agent</th>
               <th>Risk band</th>
               <th>Model scores</th>
               <th>Created</th>
@@ -190,6 +221,7 @@
               <tr on:click={() => window.location.href = `/cases/${c.case_id}`}>
                 <td><span class="mono muted" style="font-size: 12px;">{shortId(c.case_id)}</span></td>
                 <td><RiskPill status={c.status} /></td>
+                <td><RiskPill status={agentStatus(c)} /></td>
                 <td><RiskPill band={c.risk_band} /></td>
                 <td style="min-width: 160px;">
                   <div class="stack" style="gap: 4px;">

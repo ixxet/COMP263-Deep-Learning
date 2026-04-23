@@ -1,4 +1,12 @@
-import type { CaseDetail, CaseSummary, PredictionResponse, TransactionInput } from './types';
+import type {
+  BatchPredictionResponse,
+  CaseDetail,
+  CaseSummary,
+  PredictionHistoryItem,
+  PredictionResponse,
+  RiskBand,
+  TransactionInput
+} from './types';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -22,18 +30,26 @@ export function predict(transaction: TransactionInput): Promise<PredictionRespon
   });
 }
 
-export function uploadBatch(file: File): Promise<{
-  accepted_rows: number;
-  rejected_rows: number;
-  prediction_ids: string[];
-  case_ids: string[];
-}> {
+export function uploadBatch(file: File): Promise<BatchPredictionResponse> {
   const form = new FormData();
   form.append('file', file);
   return request('/api/v1/predict/batch', {
     method: 'POST',
     body: form
   });
+}
+
+export function listPredictions(params: {
+  risk_band?: RiskBand;
+  has_case?: boolean;
+  limit?: number;
+} = {}): Promise<PredictionHistoryItem[]> {
+  const query = new URLSearchParams();
+  if (params.risk_band) query.set('risk_band', params.risk_band);
+  if (params.has_case !== undefined) query.set('has_case', String(params.has_case));
+  if (params.limit !== undefined) query.set('limit', String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return request(`/api/v1/predictions${suffix}`);
 }
 
 export function listCases(): Promise<CaseSummary[]> {
@@ -53,4 +69,3 @@ export function reviewCase(
     body: JSON.stringify(payload)
   });
 }
-

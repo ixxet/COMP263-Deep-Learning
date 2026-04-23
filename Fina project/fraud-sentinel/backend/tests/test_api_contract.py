@@ -1,11 +1,21 @@
 from __future__ import annotations
 
+import csv
 import importlib.util
 import os
 import unittest
+from io import StringIO
 
 
-RUNTIME_DEPS = ("fastapi", "pandas", "torch", "joblib", "prometheus_fastapi_instrumentator")
+RUNTIME_DEPS = (
+    "fastapi",
+    "joblib",
+    "multipart",
+    "pandas",
+    "prometheus_fastapi_instrumentator",
+    "pydantic_settings",
+    "torch",
+)
 
 
 @unittest.skipUnless(
@@ -17,7 +27,7 @@ class ApiContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         os.environ.pop("FRAUD_DATABASE_URL", None)
         os.environ["FRAUD_ALLOW_DEMO_MODEL"] = "true"
-        os.environ["FRAUD_BATCH_LIMIT"] = "2"
+        os.environ["FRAUD_BATCH_LIMIT"] = "20"
 
         from fastapi.testclient import TestClient
         from fraud_sentinel.api.main import app
@@ -72,9 +82,49 @@ class ApiContractTests(unittest.TestCase):
         payload = response.json()
         self.assertEqual(payload["accepted_rows"], 1)
         self.assertEqual(payload["rejected_rows"], 1)
+        self.assertEqual(len(payload["rows"]), 1)
+        self.assertEqual(payload["rows"][0]["row_index"], 1)
+        self.assertEqual(payload["rows"][0]["risk_band"], "high")
+        self.assertEqual(len(payload["rejections"]), 1)
+        self.assertEqual(payload["rejections"][0]["row_index"], 2)
+        self.assertIn("V28 must be numeric", payload["rejections"][0]["reason"])
+
+    def test_prediction_history_includes_low_risk_audit_records(self) -> None:
+        response = self.client.post("/v1/predict", json=_transaction(amount=10))
+        self.assertEqual(response.status_code, 200)
+        prediction = response.json()
+        self.assertEqual(prediction["risk_band"], "low")
+        self.assertIsNone(prediction["case_id"])
+
+        history_response = self.client.get("/v1/predictions?risk_band=low&has_case=false&limit=10")
+        self.assertEqual(history_response.status_code, 200)
+        history = history_response.json()
+        self.assertTrue(any(row["prediction_id"] == prediction["prediction_id"] for row in history))
+        row = next(row for row in history if row["prediction_id"] == prediction["prediction_id"])
+        self.assertIsNone(row["case_id"])
+        self.assertEqual(row["amount"], 10)
+
+    def test_demo_csv_download_matches_batch_schema(self) -> None:
+        response = self.client.get("/v1/samples/demo.csv")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"].split(";")[0], "text/csv")
+
+        rows = list(csv.DictReader(StringIO(response.text)))
+        self.assertGreaterEqual(len(rows), 3)
+        self.assertEqual(set(rows[0].keys()), {"Time", *[f"V{i}" for i in range(1, 29)], "Amount", "Class"})
+
+        batch_response = self.client.post(
+            "/v1/predict/batch",
+            files={"file": ("demo.csv", response.text, "text/csv")},
+        )
+        self.assertEqual(batch_response.status_code, 200)
+        payload = batch_response.json()
+        self.assertEqual(payload["accepted_rows"], len(rows))
+        self.assertEqual(payload["rejected_rows"], 0)
+        self.assertTrue({"low", "uncertain", "high"}.issubset({row["risk_band"] for row in payload["rows"]}))
 
     def test_batch_limit_is_enforced(self) -> None:
-        csv = _csv([_transaction(), _transaction(), _transaction()])
+        csv = _csv([_transaction() for _ in range(21)])
         response = self.client.post(
             "/v1/predict/batch",
             files={"file": ("transactions.csv", csv, "text/csv")},

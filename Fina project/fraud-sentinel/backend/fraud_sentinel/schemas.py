@@ -52,11 +52,41 @@ class PredictionResponse(BaseModel):
     case_id: str | None = None
 
 
+class PredictionHistoryItem(BaseModel):
+    prediction_id: str
+    risk_score: float = Field(ge=0.0, le=1.0)
+    anomaly_score: float = Field(ge=0.0, le=1.0)
+    risk_band: Literal["low", "uncertain", "high"]
+    model_version: str
+    created_at: datetime | None = None
+    transaction_time: float | None = None
+    amount: float | None = None
+    case_id: str | None = None
+    case_status: str | None = None
+
+
+class BatchPredictionRow(BaseModel):
+    row_index: int = Field(ge=1)
+    prediction_id: str
+    risk_score: float = Field(ge=0.0, le=1.0)
+    anomaly_score: float = Field(ge=0.0, le=1.0)
+    risk_band: Literal["low", "uncertain", "high"]
+    model_version: str
+    case_id: str | None = None
+
+
+class BatchRejectedRow(BaseModel):
+    row_index: int = Field(ge=1)
+    reason: str
+
+
 class BatchPredictionResponse(BaseModel):
     accepted_rows: int
     rejected_rows: int
     prediction_ids: list[str]
     case_ids: list[str]
+    rows: list[BatchPredictionRow] = Field(default_factory=list)
+    rejections: list[BatchRejectedRow] = Field(default_factory=list)
 
 
 class CaseSummary(BaseModel):
@@ -72,9 +102,9 @@ class CaseSummary(BaseModel):
 
 class CaseDetail(CaseSummary):
     transaction: dict[str, float]
-    policy_context: list[dict] = []
-    reviews: list[dict] = []
-    audit_events: list[dict] = []
+    policy_context: list[dict] = Field(default_factory=list)
+    reviews: list[dict] = Field(default_factory=list)
+    audit_events: list[dict] = Field(default_factory=list)
 
 
 class ReviewRequest(BaseModel):
@@ -86,4 +116,3 @@ class ReviewRequest(BaseModel):
 class ReviewResponse(BaseModel):
     case_id: str
     status: str
-

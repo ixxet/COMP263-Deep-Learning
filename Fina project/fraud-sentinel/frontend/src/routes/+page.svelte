@@ -14,6 +14,14 @@
     ...Object.fromEntries(PCA_FIELDS.map(f => [f, 0]))
   } as TransactionInput;
 
+  const UNCERTAIN_SAMPLE: TransactionInput = {
+    Time: 0, Amount: 100,
+    ...Object.fromEntries(PCA_FIELDS.map(f => [f, 0])),
+    V10: -0.667,
+    V14: -2,
+    V17: -1,
+  } as TransactionInput;
+
   const FRAUD_SAMPLE: TransactionInput = {
     Time: 406, Amount: 529,
     V1: -2.31, V2: 1.95,  V3: -1.61, V4: 3.99,  V5: -0.52,
@@ -53,12 +61,18 @@
     return 'Low risk — stored for audit only. No case opened.';
   }
 
-  function loadSample(type: 'ordinary' | 'fraud') {
-    transaction = type === 'fraud' ? { ...FRAUD_SAMPLE } : { ...ORDINARY_SAMPLE };
+  function loadSample(type: 'ordinary' | 'uncertain' | 'fraud') {
+    transaction = type === 'fraud'
+      ? { ...FRAUD_SAMPLE }
+      : type === 'uncertain'
+        ? { ...UNCERTAIN_SAMPLE }
+        : { ...ORDINARY_SAMPLE };
     result = null; error = '';
     scoreMsg = type === 'fraud'
-      ? 'Loaded known fraud-like sample — significant V14, V4 deviations.'
-      : 'Loaded ordinary baseline sample — all PCA features zeroed.';
+      ? 'Loaded fraud-like sample with strong PCA deviations.'
+      : type === 'uncertain'
+        ? 'Loaded borderline sample that should land near the review threshold.'
+        : 'Loaded ordinary baseline sample — all PCA features zeroed.';
   }
 
   // ── Submit ─────────────────────────────────────────────────────────
@@ -88,9 +102,9 @@
   ];
 
   const bands = [
-    { band: 'high',      desc: '> 0.75 risk score — review case opened' },
-    { band: 'uncertain', desc: '0.45–0.75 — review case opened' },
-    { band: 'low',       desc: '< 0.45 — audit record only' },
+    { band: 'high',      desc: 'Above high-risk threshold or severe anomaly — review case opened' },
+    { band: 'uncertain', desc: 'Above review threshold — review case opened' },
+    { band: 'low',       desc: 'Below review thresholds — audit record only' },
   ];
 </script>
 
@@ -108,7 +122,9 @@
     <!-- Quick actions -->
     <div class="row">
       <button class="btn" on:click={() => loadSample('ordinary')}>Load ordinary sample</button>
+      <button class="btn" on:click={() => loadSample('uncertain')}>Load uncertain sample</button>
       <button class="btn" on:click={() => loadSample('fraud')}>Load fraud-like sample</button>
+      <a href="/batch" class="btn btn-ghost">Download demo CSV</a>
     </div>
 
     <!-- Score message / notice -->

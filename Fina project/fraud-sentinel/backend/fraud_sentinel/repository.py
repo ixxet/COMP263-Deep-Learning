@@ -37,6 +37,14 @@ class Repository(ABC):
     ) -> tuple[str, str | None]: ...
 
     @abstractmethod
+    async def list_predictions(
+        self,
+        risk_band: str | None = None,
+        has_case: bool | None = None,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]: ...
+
+    @abstractmethod
     async def list_cases(self, status: str | None = None) -> list[dict[str, Any]]: ...
 
     @abstractmethod
@@ -136,6 +144,42 @@ class MemoryRepository(Repository):
             await self.write_audit("case", case_id, "case_created", prediction)
         await self.write_audit("prediction", prediction_id, "prediction_created", prediction)
         return prediction_id, case_id
+
+    async def list_predictions(
+        self,
+        risk_band: str | None = None,
+        has_case: bool | None = None,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        case_by_prediction = {
+            case["prediction_id"]: case
+            for case in self.cases.values()
+        }
+        rows: list[dict[str, Any]] = []
+        for prediction in self.predictions.values():
+            case = case_by_prediction.get(prediction["prediction_id"])
+            if risk_band and prediction["risk_band"] != risk_band:
+                continue
+            if has_case is True and not case:
+                continue
+            if has_case is False and case:
+                continue
+            transaction = self.transactions[prediction["transaction_id"]]["payload"]
+            rows.append(
+                {
+                    "prediction_id": prediction["prediction_id"],
+                    "risk_score": prediction["risk_score"],
+                    "anomaly_score": prediction["anomaly_score"],
+                    "risk_band": prediction["risk_band"],
+                    "model_version": prediction["model_version"],
+                    "created_at": prediction["created_at"],
+                    "transaction_time": transaction.get("Time"),
+                    "amount": transaction.get("Amount"),
+                    "case_id": case["case_id"] if case else None,
+                    "case_status": case["status"] if case else None,
+                }
+            )
+        return sorted(rows, key=lambda row: row["created_at"], reverse=True)[:limit]
 
     async def list_cases(self, status: str | None = None) -> list[dict[str, Any]]:
         cases = list(self.cases.values())
@@ -321,6 +365,42 @@ class PostgresRepository(Repository):
                     _json_dumps(prediction),
                 )
                 return str(prediction_id), str(case_id) if case_id else None
+
+    async def list_predictions(
+        self,
+        risk_band: str | None = None,
+        has_case: bool | None = None,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        conditions: list[str] = []
+        args: list[Any] = []
+        if risk_band:
+            args.append(risk_band)
+            conditions.append(f"p.risk_band = ${len(args)}")
+        if has_case is True:
+            conditions.append("c.case_id is not null")
+        elif has_case is False:
+            conditions.append("c.case_id is null")
+        args.append(limit)
+        limit_ref = f"${len(args)}"
+        where = f"where {' and '.join(conditions)}" if conditions else ""
+        rows = await self.pool.fetch(
+            f"""
+            select p.prediction_id::text, p.risk_score, p.anomaly_score,
+                   p.risk_band, p.model_version, p.created_at,
+                   (t.payload->>'Time')::double precision as transaction_time,
+                   (t.payload->>'Amount')::double precision as amount,
+                   c.case_id::text, c.status as case_status
+            from predictions p
+            join transactions t on t.transaction_id = p.transaction_id
+            left join fraud_cases c on c.prediction_id = p.prediction_id
+            {where}
+            order by p.created_at desc
+            limit {limit_ref}
+            """,
+            *args,
+        )
+        return [dict(row) for row in rows]
 
     async def list_cases(self, status: str | None = None) -> list[dict[str, Any]]:
         where = "where status = $1" if status else ""

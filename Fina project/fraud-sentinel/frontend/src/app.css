@@ -230,6 +230,9 @@ a { color: inherit; text-decoration: none; }
 .pill.pending_review       { background: var(--uncertain-bg); color: var(--uncertain); }
 .pill.awaiting_human_review{ background: var(--awaiting-bg);  color: var(--awaiting); }
 .pill.audit_closed    { background: var(--low-bg);        color: var(--low); }
+.pill.brief_ready     { background: var(--low-bg);        color: var(--low); }
+.pill.agent_pending   { background: var(--uncertain-bg);  color: var(--uncertain); }
+.pill.reviewed_no_brief { background: var(--dismissed-bg); color: var(--dismissed); }
 
 /* ── Score bar ─────────────────────────────────────────────────────── */
 .score-bar-label {

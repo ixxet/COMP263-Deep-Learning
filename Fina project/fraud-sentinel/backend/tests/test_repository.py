@@ -62,6 +62,42 @@ class MemoryRepositoryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await repo.list_cases(), [])
         self.assertTrue(any(event["event_type"] == "prediction_created" for event in repo.audit_events))
 
+    async def test_prediction_history_includes_case_route(self) -> None:
+        repo = MemoryRepository()
+        transaction = {column: 0.0 for column in FEATURE_COLUMNS}
+        transaction["Time"] = 42.0
+        transaction["Amount"] = 75.0
+        low_prediction_id, _ = await repo.create_prediction(
+            dict(transaction),
+            {
+                "risk_score": 0.05,
+                "anomaly_score": 0.02,
+                "risk_band": "low",
+                "model_version": "test-model",
+            },
+        )
+        _, case_id = await repo.create_prediction(
+            dict(transaction),
+            {
+                "risk_score": 0.85,
+                "anomaly_score": 0.20,
+                "risk_band": "high",
+                "model_version": "test-model",
+            },
+        )
+
+        audit_only = await repo.list_predictions(has_case=False)
+        reviewable = await repo.list_predictions(has_case=True)
+
+        self.assertEqual(len(audit_only), 1)
+        self.assertEqual(audit_only[0]["prediction_id"], low_prediction_id)
+        self.assertIsNone(audit_only[0]["case_id"])
+        self.assertEqual(audit_only[0]["transaction_time"], 42.0)
+        self.assertEqual(audit_only[0]["amount"], 75.0)
+        self.assertEqual(len(reviewable), 1)
+        self.assertEqual(reviewable[0]["case_id"], case_id)
+        self.assertEqual(reviewable[0]["case_status"], "pending_review")
+
     async def test_pending_cases_respects_limit(self) -> None:
         repo = MemoryRepository()
         transaction = {column: 0.0 for column in FEATURE_COLUMNS}

@@ -13,6 +13,7 @@
   const navItems = [
     { href: '/',       icon: '⬡', label: 'Score Transaction' },
     { href: '/batch',  icon: '⊞', label: 'Batch Upload'      },
+    { href: '/history', icon: '⋯', label: 'Prediction History' },
     { href: '/cases',  icon: '⊡', label: 'Case Queue'        },
   ];
 
