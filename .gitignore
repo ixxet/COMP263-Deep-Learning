@@ -25,3 +25,11 @@ env/
 .vscode/
 .idea/
 *.swp
+
+# Assignment demo media
+Assign1/*.mp4
+Assign2/*.mp4
+Assign3/*.mp4
+Assign1/Images/
+Assign2/images/
+Assign3/Images/
