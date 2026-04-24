@@ -266,7 +266,7 @@ scatter = plt.scatter(
     s=5
 )
 plt.colorbar(scatter, label='Class Label')
-plt.title('VAE Latent Space (z_mu) — Test Set', fontsize=16)
+plt.title('VAE Latent Space (z_mu) - Test Set', fontsize=16)
 plt.xlabel('z_mu[0]')
 plt.ylabel('z_mu[1]')
 plt.grid(True, alpha=0.3)

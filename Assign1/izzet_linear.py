@@ -237,7 +237,7 @@ print("\n" + "=" * 50)
 print("STEP H: RNN (LSTM) MODEL")
 print("=" * 50)
 
-# RNN uses (28, 28) input directly — no channel dimension needed
+# RNN uses (28, 28) input directly - no channel dimension needed
 x_train_rnn = x_train_izzet
 x_val_rnn = x_val_izzet
 x_test_rnn = test_izzet['images']
