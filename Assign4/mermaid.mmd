@@ -1,0 +1,17 @@
+flowchart LR
+    A["Project Gutenberg URLs"] --> B["src/fetch_corpus.py"]
+    B --> C["data/raw/*.txt"]
+    C --> D["src/preprocess.py"]
+    D --> E["data/clean/*.txt"]
+    E --> F["src/chunking.py<br/>recursive split + overlap"]
+    F --> G["src/build_index.py"]
+    G --> H["MiniLM embeddings"]
+    H --> I["FAISS IndexFlatIP"]
+    J["app.py / Streamlit"] --> K["User question"]
+    K --> L["Query embedding"]
+    L --> I
+    I --> M["Top-k chunks"]
+    M --> N["src/rag.py"]
+    N --> O["vLLM OpenAI-compatible endpoint"]
+    O --> P["Grounded answer with citations"]
+    M --> P

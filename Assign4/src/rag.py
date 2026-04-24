@@ -40,7 +40,7 @@ SYSTEM_PROMPT = (
     "You are a careful research assistant for the works of Fyodor Dostoevsky "
     "and Friedrich Nietzsche. Answer the user's question using ONLY the "
     "passages provided in the CONTEXT block. If the context does not contain "
-    "the answer, say so plainly — do not invent facts, quotes, or citations. "
+    "the answer, say so plainly. Do not invent facts, quotes, or citations. "
     "When you draw on a passage, cite it inline using its bracketed number, "
     "e.g. [2]. Keep the answer focused and grounded in the text."
 )
@@ -108,7 +108,7 @@ class RAG:
             [query], normalize_embeddings=True, convert_to_numpy=True
         ).astype(np.float32)
 
-        # If filtering, over-fetch then post-filter — fine for 6 books / few k chunks.
+        # If filtering, over-fetch then post-filter. Fine for 6 books / few k chunks.
         fetch_k = k if not authors else max(k * 6, k)
         scores, ids = self.index.search(q_vec, fetch_k)
         ids = ids[0].tolist()

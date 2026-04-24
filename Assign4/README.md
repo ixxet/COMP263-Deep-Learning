@@ -20,6 +20,30 @@ Users can enter a question, choose the search scope by author, adjust top-k
 retrieval, view the generated answer, and inspect every retrieved passage with
 its source and similarity score.
 
+## 1A. Pipeline Diagram
+
+The Mermaid source for this diagram is also stored in `mermaid.mmd`.
+
+```mermaid
+flowchart LR
+    A["Project Gutenberg URLs"] --> B["src/fetch_corpus.py"]
+    B --> C["data/raw/*.txt"]
+    C --> D["src/preprocess.py"]
+    D --> E["data/clean/*.txt"]
+    E --> F["src/chunking.py<br/>recursive split + overlap"]
+    F --> G["src/build_index.py"]
+    G --> H["MiniLM embeddings"]
+    H --> I["FAISS IndexFlatIP"]
+    J["app.py / Streamlit"] --> K["User question"]
+    K --> L["Query embedding"]
+    L --> I
+    I --> M["Top-k chunks"]
+    M --> N["src/rag.py"]
+    N --> O["vLLM OpenAI-compatible endpoint"]
+    O --> P["Grounded answer with citations"]
+    M --> P
+```
+
 ---
 
 ## 2. Exercise Breakdown
@@ -171,6 +195,7 @@ the Correct / Partial / Incorrect verdicts into `report.md`.
 | Streamlit loads but answering fails | vLLM server is not running | Start `vllm serve ...` in another terminal |
 | Model name error from vLLM | `VLLM_MODEL` does not match the served model | Set `export VLLM_MODEL="<served model name>"` |
 | Weak or off-topic answers | Retrieved chunks do not contain enough context | Increase top-k or remove the author filter |
+| App starts but cannot produce a final answer | Retrieval data exists but the vLLM endpoint is unavailable | The UI can still show evidence, but final generation requires a reachable vLLM server |
 
 ---
 
@@ -245,13 +270,17 @@ the Correct / Partial / Incorrect verdicts into `report.md`.
 
 ## 7. Potential Improvements and Industry Considerations
 
+The current design is intentionally simple and defensible for a course assignment. It is effective on a small corpus, but your professor is right that it is not the scaling shape you would keep for a much larger system. Exact vector search over a single in-memory index, coupled directly to the UI process, is easy to reason about but not ideal once the corpus, concurrency, or deployment footprint grows.
+
 ### Retrieval Strategy
 
 | Current Approach | Industry Alternative | Trade-off |
 |-----------------|---------------------|-----------|
 | Character chunking | Section-aware chunking by chapter or numbered aphorism | Better source boundaries, but more corpus-specific parsing |
+| Recursive separator chunking | Semantic chunking using embedding similarity between adjacent spans | Better topic coherence, but extra compute and more tuning |
 | MiniLM embeddings | Larger embedding model such as BGE or E5 | Better semantic matching, but more memory and slower indexing |
 | Exact FAISS search | Approximate FAISS index for millions of chunks | Scales further, but adds tuning and slight recall loss |
+| Dense retrieval only | Hybrid BM25 + dense retrieval | Better recall on names and quoted phrases, but more system complexity |
 
 ### Generation Strategy
 
@@ -260,6 +289,7 @@ the Correct / Partial / Incorrect verdicts into `report.md`.
 | Single prompt with retrieved chunks | Reranking before generation | Better context selection, but adds another model step |
 | Context-only system prompt | Structured answer validation | Stronger hallucination control, but more implementation complexity |
 | Local 8B instruct model | Larger hosted or local model | Higher answer quality, but more cost or hardware demand |
+| UI process calls generator directly | Separate retrieval and generation services | More scalable deployment, but more moving parts |
 
 ### Evaluation
 
@@ -277,3 +307,13 @@ the Correct / Partial / Incorrect verdicts into `report.md`.
   which is appropriate for assignments that emphasize implementation control.
 - **A simple Streamlit UI** satisfies the creativity/interface requirement
   without adding unnecessary web framework complexity.
+
+### Practical Upgrade Path
+
+If this project had to scale past a class assignment, the first upgrades I would make are:
+
+1. **Move to structure-aware chunking** by chapter, heading, or aphorism before applying overlap.
+2. **Test semantic chunking** if the goal is higher chunk coherence than fixed recursive splitting.
+3. **Add hybrid retrieval and reranking** so recall and final context quality improve together.
+4. **Swap exact FAISS search for ANN** once the chunk count is large enough that exact search is wasteful.
+5. **Decouple the UI from indexing and generation** so preprocessing, retrieval, and serving can scale independently.

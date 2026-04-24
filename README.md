@@ -45,6 +45,42 @@ states on image rows  to supervised CNN         +                 Context-only
 
 **Assignment 4** moves from model training to retrieval-augmented generation. A custom RAG pipeline downloads six public-domain books from Project Gutenberg, strips boilerplate, chunks the text, embeds passages with Sentence-Transformers, and stores normalized vectors in FAISS for cosine retrieval. A Streamlit app lets users ask questions, filter results by author, inspect retrieved chunks, and generate context-grounded answers through a locally served vLLM endpoint.
 
+## Assignment 4 Pipeline
+
+The Assignment 4 app is documented in more detail in [Assign4/README.md](./Assign4/README.md). The same Mermaid source is also stored in [Assign4/mermaid.mmd](./Assign4/mermaid.mmd).
+
+```mermaid
+flowchart LR
+    A["Project Gutenberg corpus"] --> B["fetch_corpus.py"]
+    B --> C["data/raw"]
+    C --> D["preprocess.py"]
+    D --> E["data/clean"]
+    E --> F["chunking.py<br/>1000 chars / 200 overlap"]
+    F --> G["build_index.py"]
+    G --> H["MiniLM embeddings"]
+    H --> I["FAISS IndexFlatIP"]
+    J["Streamlit app"] --> K["User question"]
+    K --> L["MiniLM query embedding"]
+    L --> I
+    I --> M["Top-k retrieved chunks"]
+    M --> N["vLLM-served instruct model"]
+    N --> O["Grounded answer + citations"]
+    M --> O
+```
+
+## Assignment 4 Scalability Notes
+
+The current RAG implementation is a clean baseline for a six-book corpus, but it is not designed for large-scale production search. The main scaling constraints are exact FAISS search, whole-index loading in one process, simple post-filtering by author, and character-based chunking that is not aware of chapter or section boundaries.
+
+Reasonable upgrade paths:
+
+- **Structured chunking:** split by chapter, heading, or aphorism before applying overlap. This keeps source boundaries cleaner than plain character windows.
+- **Semantic chunking:** if your professor meant semantic chunking, the next step is using embedding or similarity-based boundary detection rather than only recursive separators.
+- **Hybrid retrieval:** combine dense retrieval with BM25 or keyword retrieval for stronger recall on names, quotes, and exact phrases.
+- **Reranking:** add a lightweight cross-encoder reranker after FAISS retrieval to improve final context quality without changing the corpus format.
+- **Approximate search:** replace exact `IndexFlatIP` with an ANN strategy such as IVF or HNSW when the corpus grows beyond laptop-sized exact search.
+- **Operational scaling:** separate preprocessing, indexing, retrieval, and generation into independent services so the UI is not responsible for the whole pipeline lifecycle.
+
 ## Technology Stack
 
 | Library | Version | Usage |

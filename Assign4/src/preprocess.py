@@ -61,7 +61,7 @@ def normalise(text: str) -> str:
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = PRODUCED_BY_MARK.sub("", text)
     text = TRANSCRIBER_NOTE_MARK.sub("\n", text)
-    # Some Gutenberg texts use _underscores_ for italics — drop the markers.
+    # Some Gutenberg texts use _underscores_ for italics, drop the markers.
     text = re.sub(r"(?<!\w)_([^_]+)_(?!\w)", r"\1", text)
     # Collapse runs of >2 newlines to exactly 2 (paragraph break).
     text = re.sub(r"\n{3,}", "\n\n", text)
